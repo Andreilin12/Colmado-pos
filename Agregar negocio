@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agregar Negocio</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #2c3e50;
+    }
+    header {
+        background-color: #2c3e50;
+        color: #fff;
+        padding: 10px 0;
+        text-align: center;
+    }
+    main {
+        padding: 20px;
+    }
+    .form-section {
+        margin-bottom: 20px;
+    }
+    .form-section h2 {
+        margin-top: 0;
+    }
+    form {
+        background: #fff;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        margin: auto;
+    }
+    form input {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+    form button {
+        background-color: #16a085;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+    form button:hover {
+        background-color: #2c3e50;
+    }
+    h2 {
+        color: #fff;
+    }
+
+    /* Desactivar la selección de texto y el efecto de arrastre */
+    * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+    }
+
+    .back-button {
+        background-color: #16a085;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: background-color 0.3s;
+    }
+
+    .back-button i {
+        margin-right: 8px;
+    }
+
+    .back-button:hover {
+        background-color: #2c3e50;
+    }
+
+    /* Estilos personalizados para SweetAlert2 */
+    .swal2-title {
+        font-family: Arial, sans-serif;
+        color: #2c3e50;
+    }
+    .swal2-popup {
+        border-radius: 10px;
+    }
+    .swal2-success {
+        border-color: #16a085;
+    }
+    .swal2-error {
+        border-color: #e74c3c;
+    }
+    .swal2-styled.swal2-confirm {
+        background-color: #16a085;
+    }
+    .swal2-styled.swal2-confirm:hover {
+        background-color: #2c3e50 !important;
+    }
+    .swal2-loader {
+        border-color: #16a085 transparent #16a085 transparent;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back-button" onclick="goBack()">
+      <i class="fas fa-arrow-left"></i> Volver
+    </button>
+    <h1>Agregar Negocio</h1>
+  </header>
+  <main>
+    <section class="form-section">
+      <form id="addBusinessForm">
+        <label for="businessName">Nombre del Negocio:</label>
+        <input type="text" id="businessName" required>
+        <button type="submit">Agregar Negocio</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDLi-egzQlgbKW8XV_qIhU6313Gd8gocCg",
+      authDomain: "inventario-35d6b.firebaseapp.com",
+      databaseURL: "https://inventario-35d6b-default-rtdb.firebaseio.com",
+      projectId: "inventario-35d6b",
+      storageBucket: "inventario-35d6b.appspot.com",
+      messagingSenderId: "266100399659",
+      appId: "1:266100399659:web:92358d28cbd803c8a7d46e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser = null;
+
+    // Verificación de autenticación
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+      } else {
+        Swal.fire({
+          title: 'Acceso no autorizado',
+          text: 'Debes iniciar sesión para acceder a esta página',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          background: '#fff',
+          backdrop: `
+            rgba(0,0,0,0.7)
+            url("https://i.gifer.com/ZZ5H.gif")
+            center top
+            no-repeat
+          `,
+          allowOutsideClick: false
+        }).then(() => {
+          window.location.href = "index.html";
+        });
+      }
+    });
+
+    // Función para generar un ID único
+    function generateUniqueId() {
+      return 'biz_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    }
+
+    // Manejo del formulario
+    document.getElementById("addBusinessForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const businessName = document.getElementById("businessName").value.trim();
+      
+      if (!businessName) {
+        Swal.fire({
+          title: 'Campo vacío',
+          text: 'Por favor ingresa un nombre para el negocio',
+          icon: 'warning',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+        return;
+      }
+
+      if (!currentUser) {
+        Swal.fire({
+          title: 'Sesión requerida',
+          text: 'Debes iniciar sesión para agregar negocios',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+        return;
+      }
+
+      // Mostrar loader mientras se procesa
+      Swal.fire({
+        title: 'Procesando...',
+        html: 'Estamos agregando tu negocio',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+        background: '#fff'
+      });
+
+      try {
+        // Generar un ID único para el negocio
+        const businessId = generateUniqueId();
+        
+        // Crear el negocio en Firestore
+        await setDoc(doc(db, "businesses", businessId), {
+          name: businessName,
+          userId: currentUser.uid,
+          createdAt: new Date()
+        });
+
+        // Mostrar alerta de éxito
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Negocio agregado correctamente',
+          icon: 'success',
+          confirmButtonText: 'Continuar',
+          background: '#fff',
+          timer: 2000,
+          timerProgressBar: true
+        });
+        
+        // Limpiar formulario
+        document.getElementById("businessName").value = "";
+      } catch (error) {
+        console.error("Error al agregar el negocio:", error);
+        
+        // Mostrar alerta de error
+        Swal.fire({
+          title: 'Error',
+          text: 'Hubo un problema al agregar el negocio. Por favor intenta nuevamente.',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+      }
+    });
+  </script>
+
+  <!-- Scripts adicionales (funciones originales) -->
+  <script>
+    // Función para volver atrás
+    function goBack() {
+      window.history.back();
+    }
+
+    // Bloquear el clic derecho
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'Acción bloqueada',
+        text: 'El clic derecho está deshabilitado en esta aplicación',
+        icon: 'info',
+        confirmButtonText: 'Entendido',
+        background: '#fff'
+      });
+    });
+
+    // Bloquear teclas específicas (F12, Ctrl+Shift+I, Ctrl+U)
+    document.addEventListener('keydown', function(e) {
+      // F12
+      if (e.key === "F12") {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Acción bloqueada',
+          text: 'La tecla F12 está deshabilitada en esta aplicación',
+          icon: 'info',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+      }
+
+      // Ctrl+Shift+I (inspeccionar)
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Acción bloqueada',
+          text: 'La combinación Ctrl+Shift+I está deshabilitada',
+          icon: 'info',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+      }
+
+      // Ctrl+U (ver código fuente)
+      if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Acción bloqueada',
+          text: 'La combinación Ctrl+U está deshabilitada',
+          icon: 'info',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+      }
+
+      // Ctrl+Shift+J (consola)
+      if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Acción bloqueada',
+          text: 'La combinación Ctrl+Shift+J está deshabilitada',
+          icon: 'info',
+          confirmButtonText: 'Entendido',
+          background: '#fff'
+        });
+      }
+    });
+
+    // Accesos Directos
+    document.addEventListener('keydown', function(event) {
+      // Ctrl + A: Ir a archivos.html
+      if (event.ctrlKey && event.key === 'a') {
+        event.preventDefault();
+        window.location.href = 'archivos.html';
+      }
+      
+      // Ctrl + N: Ir a Negocio.html
+      if (event.ctrlKey && event.key === 'n') {
+        event.preventDefault();
+        window.location.href = 'Negocio.html';
+      }
+      
+      // Ctrl + P: Ir a Producto.html
+      if (event.ctrlKey && event.key === 'p') {
+        event.preventDefault();
+        window.location.href = 'Producto.html';
+      }
+      
+      // Ctrl + S: Ir a soporte.html
+      if (event.ctrlKey && event.key === 's') {
+        event.preventDefault();
+        window.location.href = 'soporte.html';
+      }
+      
+      // Ctrl + Alt + C: Ir a permisos.html
+      if (event.ctrlKey && event.altKey && event.key === 'c') {
+        event.preventDefault();
+        window.location.href = 'permisos.html';
+      }
+    });
+  </script>
+</body>
+</html>
