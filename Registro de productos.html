@@ -7,169 +7,168 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
-  
-  body {
-    font-family: 'Arial', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #2c3e50;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #2c3e50;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-  header {
-    background-color: #2c3e50;
-    padding: 20px;
-    text-align: center;
-  }
+    header {
+      background-color: #2c3e50;
+      padding: 20px;
+      text-align: center;
+    }
 
-  main {
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+    main {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-  form {
-    background: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
-    color: #333;
-    box-sizing: border-box;
-  }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      color: #333;
+      box-sizing: border-box;
+    }
 
-  .form-group {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-
-  .form-group label {
-    flex: 1 1 100%;
-    margin-bottom: 10px;
-  }
-
-  .form-group input, .form-group select {
-    flex: 1 1 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-
-  button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #16a085;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    width: 100%;
-    max-width: 200px;
-    margin-top: 10px;
-    align-self: center;
-  }
-
-  button:hover {
-    background-color: #2c3e50;
-  }
-
-  #imagePreview {
-    display: block;
-    width: 100px;
-    height: 100px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    object-fit: cover;
-    margin-left: 10px;
-  }
-
-  #imageFile {
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 10px;
-    background: #fff;
-    cursor: pointer;
-    width: 100%;
-  }
-
-  #imageFile::file-selector-button {
-    background: #16a085;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    padding: 5px 10px;
-    margin-right: 10px;
-  }
-
-  #imageFile::file-selector-button:hover {
-    background: #2c3e50;
-  }
-
-  .image-upload-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 20px;
-  }
-
-  @media (min-width: 600px) {
     .form-group {
-      flex-wrap: nowrap;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
     }
 
     .form-group label {
-      flex: 1;
-      margin-bottom: 0;
+      flex: 1 1 100%;
+      margin-bottom: 10px;
     }
 
     .form-group input, .form-group select {
-      flex: 2;
+      flex: 1 1 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #16a085;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+      max-width: 200px;
+      margin-top: 10px;
+      align-self: center;
+    }
+
+    button:hover {
+      background-color: #2c3e50;
+    }
+
+    #imagePreview {
+      display: block;
+      width: 100px;
+      height: 100px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      object-fit: cover;
+      margin-left: 10px;
+    }
+
+    #imageFile {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      background: #fff;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #imageFile::file-selector-button {
+      background: #16a085;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      padding: 5px 10px;
+      margin-right: 10px;
+    }
+
+    #imageFile::file-selector-button:hover {
+      background: #2c3e50;
     }
 
     .image-upload-group {
-      flex-direction: row;
-      align-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 20px;
     }
-  }
 
-  .back-button {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background-color: #16a085;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: background-color 0.3s;
-    z-index: 1000;
-  }
+    @media (min-width: 600px) {
+      .form-group {
+        flex-wrap: nowrap;
+      }
 
-  .back-button i {
-    margin-right: 8px;
-  }
+      .form-group label {
+        flex: 1;
+        margin-bottom: 0;
+      }
 
-  .back-button:hover {
-    background-color: #2c3e50;
-  }
-    /* Estilos existentes... */
+      .form-group input, .form-group select {
+        flex: 2;
+      }
+
+      .image-upload-group {
+        flex-direction: row;
+        align-items: center;
+      }
+    }
+
+    .back-button {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: #16a085;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.3s;
+      z-index: 1000;
+    }
+
+    .back-button i {
+      margin-right: 8px;
+    }
+
+    .back-button:hover {
+      background-color: #2c3e50;
+    }
+    
     .barcode-icon {
       position: absolute;
       right: 10px;
@@ -178,6 +177,7 @@
       font-size: 1.5rem;
       color: #333;
     }
+    
     .form-group {
       position: relative;
     }
@@ -219,7 +219,7 @@
           <label for="pricePerUnit">Precio por Unidad:</label>
           <input type="number" step="0.01" id="pricePerUnit">
         </div>
- 
+
         <div class="form-group">
           <label for="expirationDate">Fecha de Vencimiento:</label>
           <input type="date" id="expirationDate">
@@ -290,6 +290,7 @@
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
+        loadUserBusinesses(); // Cargar solo los negocios del usuario actual
       } else {
         currentUser = null;
         Swal.fire({
@@ -302,10 +303,23 @@
       }
     });
 
-    async function loadBusinesses() {
-      const businessesQuerySnapshot = await getDocs(collection(db, "businesses"));
+    async function loadUserBusinesses() {
+      // Solo cargar negocios que pertenecen al usuario actual
+      const businessesQuery = query(collection(db, "businesses"), where("userId", "==", currentUser.uid));
+      const businessesQuerySnapshot = await getDocs(businessesQuery);
       const productBusinessNameSelect = document.getElementById("productBusinessName");
-      productBusinessNameSelect.innerHTML = "";  // Limpiar opciones previas
+      productBusinessNameSelect.innerHTML = "<option value=''>Selecciona un negocio</option>";
+
+      if (businessesQuerySnapshot.empty) {
+        Swal.fire({
+          icon: 'info',
+          title: 'No tienes negocios',
+          text: 'Primero debes crear un negocio para agregar productos.',
+        }).then(() => {
+          window.location.href = "business.html"; // Redirigir a la página de creación de negocios
+        });
+        return;
+      }
 
       businessesQuerySnapshot.forEach((businessDoc) => {
         const option = document.createElement("option");
@@ -326,6 +340,15 @@
     document.getElementById("addProductForm").addEventListener("submit", async function (event) {
       event.preventDefault();
 
+      if (!currentUser) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Debes iniciar sesión para agregar productos.',
+        });
+        return;
+      }
+
       const businessId = document.getElementById("productBusinessName").value;
       const productName = document.getElementById("productName").value;
       const productType = document.getElementById("productType").value;
@@ -335,15 +358,19 @@
       const productCode = document.getElementById("productCode").value;
       const imageFile = document.getElementById("imageFile").files[0];
 
-      // Verificar si el producto ya existe
-      const productsQuery = query(collection(db, "businesses", businessId, "products"), where("eanUpcCode", "==", eanUpcCode));
+      // Verificar si el producto ya existe en el negocio del usuario actual
+      const productsQuery = query(
+        collection(db, "businesses", businessId, "products"),
+        where("eanUpcCode", "==", eanUpcCode),
+        where("userId", "==", currentUser.uid)
+      );
       const productsSnapshot = await getDocs(productsQuery);
 
       if (!productsSnapshot.empty) {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'El producto con este código EAN/UPC ya existe.',
+          text: 'Ya tienes un producto con este código EAN/UPC en este negocio.',
         });
         return;
       }
@@ -361,7 +388,7 @@
         // Subir imagen a Firebase Storage
         let imageUrl = "";
         if (imageFile) {
-          const storageRef = ref(storage, `products/${imageFile.name}`);
+          const storageRef = ref(storage, `products/${currentUser.uid}/${imageFile.name}`);
           const snapshot = await uploadBytes(storageRef, imageFile);
           imageUrl = await getDownloadURL(snapshot.ref);
         }
@@ -376,6 +403,7 @@
           productCode: productCode,
           imageUrl: imageUrl,
           userId: currentUser.uid,
+          createdAt: new Date()
         });
 
         Swal.fire({
@@ -383,7 +411,7 @@
           title: 'Éxito',
           text: 'Producto agregado exitosamente.',
         });
-        document.getElementById("addProductForm").reset();  // Limpiar formulario
+        document.getElementById("addProductForm").reset();
       } catch (error) {
         console.error("Error al agregar el producto:", error);
         Swal.fire({
@@ -393,9 +421,6 @@
         });
       }
     });
-
-    // Cargar los negocios al cargar la página
-    loadBusinesses();
 
     // Función para volver atrás
     function goBack() {
