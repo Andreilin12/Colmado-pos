@@ -1542,6 +1542,43 @@
     .suggestion.active .suggestion-details {
       display: block;
     }
+
+    
+  /* Estilos generales para ocultar el scrollbar */
+  .ocultar-scrollbar {
+    overflow: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
+
+  .ocultar-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
+
+  /* Ejemplo de uso para tus ventanas/paneles */
+  .ventana-izquierda,
+  .ventana-derecha,
+  .modal-contenido,
+  .lista-desplazable {
+    height: 300px; /* Define una altura fija para que el scroll sea necesario */
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+    /* Aplica la clase para ocultar el scrollbar */
+    @extend .ocultar-scrollbar; /* Si usas SASS/SCSS */
+    /* Si no usas preprocesadores, copia directamente las propiedades: */
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ventana-izquierda::-webkit-scrollbar,
+  .ventana-derecha::-webkit-scrollbar,
+  .modal-contenido::-webkit-scrollbar,
+  .lista-desplazable::-webkit-scrollbar {
+    display: none;
+  }
+
   </style>
 </head>
 <body>
