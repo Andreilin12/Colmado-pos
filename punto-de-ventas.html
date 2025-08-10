@@ -2172,6 +2172,18 @@ body {
     let selectedInvoiceId = null;
     let amountReceived = 0; // Variable para almacenar el monto recibido
     let currentView = 'grid'; // Vista actual de productos
+    let isOnline = navigator.onLine; // Estado de conexión
+
+    // Verificar estado de conexión
+    window.addEventListener('online', () => {
+      isOnline = true;
+      actualizarPermisosUI();
+    });
+    
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      actualizarPermisosUI();
+    });
 
     // Función para mostrar la barra de progreso
     function showProgressBar(percentage, message) {
@@ -2221,19 +2233,28 @@ body {
         currentUser = user;
         
         // Obtener permisos del usuario
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          userPermissions = userDoc.data().permisos || [];
-          actualizarPermisosUI(); // Actualizar UI según permisos
-          
-          // Configurar listener para cambios en los permisos
-          const userRef = doc(db, 'users', user.uid);
-          onSnapshot(userRef, (doc) => {
-            if (doc.exists()) {
-              userPermissions = doc.data().permisos || [];
-              actualizarPermisosUI(); // Actualizar UI cuando cambien los permisos
-            }
-          });
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            userPermissions = userDoc.data().permisos || [];
+            actualizarPermisosUI(); // Actualizar UI según permisos
+            
+            // Configurar listener para cambios en los permisos
+            const userRef = doc(db, 'users', user.uid);
+            onSnapshot(userRef, (doc) => {
+              if (doc.exists()) {
+                userPermissions = doc.data().permisos || [];
+                actualizarPermisosUI(); // Actualizar UI cuando cambien los permisos
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error al obtener permisos:", error);
+          // Si hay error de conexión, mostrar candados
+          if (!isOnline) {
+            userPermissions = [];
+            actualizarPermisosUI();
+          }
         }
         
         loginSection.style.display = 'none';
@@ -2291,6 +2312,22 @@ body {
         const existingLock = icon.id.querySelector('.fa-lock');
         if (existingLock) {
           existingLock.remove();
+        }
+
+        // Verificar si hay conexión a internet
+        if (!isOnline) {
+          // Sin conexión: mostrar todos los botones bloqueados
+          icon.id.style.opacity = '0.5';
+          icon.id.style.pointerEvents = 'none';
+          icon.id.title = 'Sin conexión - No se pueden verificar permisos';
+          
+          // Agregar icono de candado
+          const lockIcon = document.createElement('i');
+          lockIcon.className = 'fas fa-lock';
+          lockIcon.style.marginLeft = '5px';
+          lockIcon.style.color = '#e74c3c';
+          icon.id.appendChild(lockIcon);
+          return;
         }
 
         if (!userPermissions.includes(icon.permission)) {
@@ -3954,10 +3991,18 @@ body {
   });
 
   inventoryBtn.addEventListener('click', () => {
+    if (!userPermissions.includes('inventario')) {
+      showAlert('warning', 'No tiene permiso para acceder al inventario');
+      return;
+    }
     showAlert('info', 'Funcionalidad de inventario en desarrollo');
   });
 
   reportsBtn.addEventListener('click', () => {
+    if (!userPermissions.includes('reportes')) {
+      showAlert('warning', 'No tiene permiso para acceder a reportes');
+      return;
+    }
     productListSection.style.display = 'none';
     invoiceSection.style.display = 'none';
     reportsSection.style.display = 'block';
@@ -3967,6 +4012,10 @@ body {
   });
 
   invoicesBtn.addEventListener('click', () => {
+    if (!userPermissions.includes('facturas')) {
+      showAlert('warning', 'No tiene permiso para acceder a facturas');
+      return;
+    }
     productListSection.style.display = 'none';
     invoiceSection.style.display = 'none';
     reportsSection.style.display = 'none';
@@ -3976,6 +4025,10 @@ body {
   });
 
   salesAnalysisBtn.addEventListener('click', () => {
+    if (!userPermissions.includes('analisis')) {
+      showAlert('warning', 'No tiene permiso para acceder a análisis');
+      return;
+    }
     productListSection.style.display = 'none';
     invoiceSection.style.display = 'none';
     reportsSection.style.display = 'none';
