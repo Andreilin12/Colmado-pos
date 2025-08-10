@@ -1960,7 +1960,8 @@ body {
       Timestamp,
       where,
       setDoc,
-      arrayUnion
+      arrayUnion,
+      onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
     import { 
       getAuth, 
@@ -1981,7 +1982,7 @@ body {
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
+    const auth = getAuth(app); 
     const storage = getStorage(app);
 
     // Definición de tipos de permisos para el header
@@ -1993,7 +1994,7 @@ body {
     ];
 
     // Elementos del DOM
-    const loginSection = document.getElementById("loginSection");
+    const loginSection = document.getElementById("loginSection"); 
     const loginLoading = document.getElementById("loginLoading");
     const posSection = document.getElementById("posSection");
     const loginEmail = document.getElementById("loginEmail");
@@ -2224,6 +2225,15 @@ body {
         if (userDoc.exists()) {
           userPermissions = userDoc.data().permisos || [];
           actualizarPermisosUI(); // Actualizar UI según permisos
+          
+          // Configurar listener para cambios en los permisos
+          const userRef = doc(db, 'users', user.uid);
+          onSnapshot(userRef, (doc) => {
+            if (doc.exists()) {
+              userPermissions = doc.data().permisos || [];
+              actualizarPermisosUI(); // Actualizar UI cuando cambien los permisos
+            }
+          });
         }
         
         loginSection.style.display = 'none';
@@ -2277,6 +2287,12 @@ body {
       ];
 
       headerIcons.forEach(icon => {
+        // Limpiar cualquier candado existente primero
+        const existingLock = icon.id.querySelector('.fa-lock');
+        if (existingLock) {
+          existingLock.remove();
+        }
+
         if (!userPermissions.includes(icon.permission)) {
           // Si no tiene permiso, deshabilitar el botón
           icon.id.style.opacity = '0.5';
@@ -2294,12 +2310,6 @@ body {
           icon.id.style.opacity = '1';
           icon.id.style.pointerEvents = 'auto';
           icon.id.title = icon.id.getAttribute('data-original-title') || '';
-          
-          // Remover icono de candado si existe
-          const lockIcon = icon.id.querySelector('.fa-lock');
-          if (lockIcon) {
-            lockIcon.remove();
-          }
         }
       });
     }
@@ -2419,10 +2429,10 @@ body {
         console.error("Error al obtener detalles del negocio:", error);
         showProgressBar(0, "Error al cargar detalles");
         return {
-          name: "Nombre del Negocio",
-          address: "Dirección del Negocio",
-          rnc: "123456789"
-        };
+            name: "Nombre del Negocio",
+            address: "Dirección del Negocio",
+            rnc: "123456789"
+          };
       }
     };
 
