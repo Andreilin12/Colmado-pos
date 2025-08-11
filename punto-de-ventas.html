@@ -1595,7 +1595,7 @@ body {
   <!-- POS Section (hidden by default) -->
   <div id="posSection" style="display: none;">
     <header>
-      <div class="header-icons">
+      <div class="header-icons"> 
         <a href="#" id="homeBtn" title="Inicio"><i class="fa-solid fa-house icon"></i></a>
         <a href="#" id="inventoryBtn" title="Inventario" data-permission="inventario"><i class="fa-solid fa-box icon"></i></a>
         <a href="#" id="reportsBtn" title="Reportes" data-permission="reportes"><i class="fa-solid fa-chart-line icon"></i></a>
@@ -2245,6 +2245,11 @@ body {
               if (doc.exists()) {
                 userPermissions = doc.data().permisos || [];
                 actualizarPermisosUI(); // Actualizar UI cuando cambien los permisos
+                
+                // Configurar listener específico para el análisis de ventas
+                if (userPermissions.includes('analisis')) {
+                  setupSalesAnalysisListener();
+                }
               }
             });
           }
@@ -2296,6 +2301,18 @@ body {
         localStorage.removeItem('userLoggedIn');
       }
     });
+
+    // Configurar listener específico para el análisis de ventas
+    function setupSalesAnalysisListener() {
+      if (!currentUser) return;
+      
+      const analysisRef = collection(db, "users", currentUser.uid, "invoiceHistory");
+      onSnapshot(analysisRef, (snapshot) => {
+        if (salesAnalysisSection.style.display === 'block') {
+          loadSalesAnalysis(analysisDateFilter.value);
+        }
+      });
+    }
 
     // Función para actualizar la UI según los permisos del usuario
     function actualizarPermisosUI() {
@@ -2422,19 +2439,115 @@ body {
       }
     });
 
-    // Logout
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        showProgressBar(30, "Cerrando sesión...");
-        await signOut(auth);
-        userInfoModal.style.display = 'none';
-        showProgressBar(100, "Sesión cerrada correctamente");
-        showAlert('success', 'Sesión cerrada correctamente');
-      } catch (error) {
-        console.error('Error al cerrar sesión:', error);
-        showProgressBar(0, "Error al cerrar sesión");
-        showAlert('error', 'Error al cerrar sesión');
-      }
+    // Logout con confirmación
+    logoutBtn.addEventListener('click', () => {
+      // Crear modal de confirmación
+      const confirmModal = document.createElement('div');
+      confirmModal.style.position = 'fixed';
+      confirmModal.style.top = '0';
+      confirmModal.style.left = '0';
+      confirmModal.style.width = '100%';
+      confirmModal.style.height = '100%';
+      confirmModal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      confirmModal.style.display = 'flex';
+      confirmModal.style.justifyContent = 'center';
+      confirmModal.style.alignItems = 'center';
+      confirmModal.style.zIndex = '2000';
+      
+      // Contenido del modal
+      const modalContent = document.createElement('div');
+      modalContent.style.backgroundColor = '#fff';
+      modalContent.style.padding = '20px';
+      modalContent.style.borderRadius = '10px';
+      modalContent.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+      modalContent.style.maxWidth = '400px';
+      modalContent.style.width = '90%';
+      modalContent.style.textAlign = 'center';
+      
+      // Título
+      const title = document.createElement('h2');
+      title.textContent = 'Confirmar Cierre de Sesión';
+      title.style.color = '#e74c3c';
+      title.style.marginBottom = '20px';
+      
+      // Mensaje
+      const message = document.createElement('p');
+      message.textContent = '¿Estás seguro que deseas cerrar sesión?';
+      message.style.marginBottom = '20px';
+      message.style.fontSize = '16px';
+      
+      // Botones
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.display = 'flex';
+      buttonContainer.style.justifyContent = 'center';
+      buttonContainer.style.gap = '10px';
+      
+      const cancelButton = document.createElement('button');
+      cancelButton.textContent = 'Cancelar';
+      cancelButton.style.padding = '10px 20px';
+      cancelButton.style.border = 'none';
+      cancelButton.style.borderRadius = '5px';
+      cancelButton.style.backgroundColor = '#95a5a6';
+      cancelButton.style.color = 'white';
+      cancelButton.style.cursor = 'pointer';
+      cancelButton.style.transition = 'background-color 0.3s';
+      
+      cancelButton.addEventListener('mouseover', () => {
+        cancelButton.style.backgroundColor = '#7f8c8d';
+      });
+      
+      cancelButton.addEventListener('mouseout', () => {
+        cancelButton.style.backgroundColor = '#95a5a6';
+      });
+      
+      const confirmButton = document.createElement('button');
+      confirmButton.textContent = 'Cerrar Sesión';
+      confirmButton.style.padding = '10px 20px';
+      confirmButton.style.border = 'none';
+      confirmButton.style.borderRadius = '5px';
+      confirmButton.style.backgroundColor = '#e74c3c';
+      confirmButton.style.color = 'white';
+      confirmButton.style.cursor = 'pointer';
+      confirmButton.style.transition = 'background-color 0.3s';
+      
+      confirmButton.addEventListener('mouseover', () => {
+        confirmButton.style.backgroundColor = '#c0392b';
+      });
+      
+      confirmButton.addEventListener('mouseout', () => {
+        confirmButton.style.backgroundColor = '#e74c3c';
+      });
+      
+      // Eventos de los botones
+      cancelButton.addEventListener('click', () => {
+        document.body.removeChild(confirmModal);
+      });
+      
+      confirmButton.addEventListener('click', async () => {
+        try {
+          showProgressBar(30, "Cerrando sesión...");
+          await signOut(auth);
+          userInfoModal.style.display = 'none';
+          document.body.removeChild(confirmModal);
+          showProgressBar(100, "Sesión cerrada correctamente");
+          showAlert('success', 'Sesión cerrada correctamente');
+        } catch (error) {
+          console.error('Error al cerrar sesión:', error);
+          showProgressBar(0, "Error al cerrar sesión");
+          showAlert('error', 'Error al cerrar sesión');
+        }
+      });
+      
+      // Agregar elementos al modal
+      buttonContainer.appendChild(cancelButton);
+      buttonContainer.appendChild(confirmButton);
+      
+      modalContent.appendChild(title);
+      modalContent.appendChild(message);
+      modalContent.appendChild(buttonContainer);
+      
+      confirmModal.appendChild(modalContent);
+      document.body.appendChild(confirmModal);
     });
 
     // Funciones de negocio
@@ -2778,7 +2891,7 @@ body {
       `;
       
       const invoiceHTML = `
-        <div class="invoice-container">
+        <div class="invoice-container" style="max-height: 80vh; overflow-y: auto;">
           <div class="invoice-header">
             <h2>${businessDetails.name}</h2>
             <p>RNC: ${businessDetails.rnc}</p>
@@ -4236,6 +4349,68 @@ body {
   printInvoicesReport.addEventListener("click", printInvoicesReportContent);
   printInvoiceDetail.addEventListener("click", printInvoiceDetailContent);
   printAnalysisReport.addEventListener("click", printAnalysisReportContent);
+
+  // Atajos de teclado
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+D para descuento
+    if (e.ctrlKey && e.key === 'd') {
+      e.preventDefault();
+      btnApplyDiscount.click();
+    }
+    
+    // Ctrl+E para pago en efectivo
+    if (e.ctrlKey && e.key === 'e') {
+      e.preventDefault();
+      btnEfectivo.click();
+    }
+    
+    // Ctrl+T para pago con tarjeta
+    if (e.ctrlKey && e.key === 't') {
+      e.preventDefault();
+      btnTarjeta.click();
+    }
+    
+    // Ctrl+F para facturar
+    if (e.ctrlKey && e.key === 'f') {
+      e.preventDefault();
+      payButton.click();
+    }
+    
+    // Supr o Delete para eliminar
+    if (e.key === 'Delete' || e.key === 'Del') {
+      const focusedElement = document.activeElement;
+      if (focusedElement === searchInput || focusedElement === searchByNameInput) {
+        focusedElement.value = '';
+        renderProducts();
+      }
+    }
+    
+    // Enter para aceptar y confirmar pagos
+    if (e.key === 'Enter') {
+      if (efectivoModal.style.display === 'flex') {
+        confirmEfectivo.click();
+      } else if (tarjetaModal.style.display === 'flex') {
+        confirmTarjeta.click();
+      } else if (passwordModal.style.display === 'block') {
+        submitPassword.click();
+      } else if (numericKeyboard.style.display === 'grid') {
+        acceptBtn.click();
+      } else if (textKeyboard.style.display === 'grid') {
+        const enterBtn = document.querySelector('.text-keyboard .enter');
+        if (enterBtn) enterBtn.click();
+      }
+    }
+    
+    // Tab para cambiar de vista 
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (currentView === 'grid') {
+        setProductView('list');
+      } else {
+        setProductView('grid');
+      }
+    }
+  });
 
   // Enfocar automáticamente el campo de búsqueda EAN/UPC al cargar la página
   window.onload = function() {
