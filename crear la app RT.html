@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creador de App RT</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        form { display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: auto; }
+        input, button { padding: 8px; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <h1>Crear nueva App RT</h1>
+
+    <form id="rt-creator-form">
+        <label for="appName">Nombre de la App:</label>
+        <input type="text" id="appName" name="appName" required>
+
+        <label for="appIconUrl">URL de la Imagen (logo):</label>
+        <input type="url" id="appIconUrl" name="appIconUrl" required>
+
+        <label for="appUrl">URL del sitio web a incrustar:</label>
+        <input type="url" id="appUrl" name="appUrl" required>
+
+        <button type="submit">Generar y Descargar .RT</button>
+    </form>
+
+    <script>
+        document.getElementById('rt-creator-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const appName = document.getElementById('appName').value;
+            const appIconUrl = document.getElementById('appIconUrl').value;
+            const appUrl = document.getElementById('appUrl').value;
+
+            // Crear un objeto JSON con los datos de la app
+            const appData = {
+                name: appName,
+                icon: appIconUrl,
+                url: appUrl
+            };
+
+            const jsonString = JSON.stringify(appData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${appName.replace(/\s/g, '-')}.rt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('¡Archivo .RT generado y listo para ser descargado!');
+        });
+    </script>
+
+</body>
+</html>
