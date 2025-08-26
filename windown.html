@@ -522,7 +522,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            width: 350px;
+            width: 650px;
             text-align: center;
         }
         .os-modal-content h3 { 
@@ -1218,6 +1218,12 @@
 
     const history = {}; // Historial de navegación por ventana de carpeta
 
+    // Variables para el sistema de iconos en el escritorio
+    const iconWidth = 80;
+    const iconHeight = 80;
+    const maxIconsPerRow = Math.floor((window.innerWidth - 20) / iconWidth);
+    const maxIconsPerColumn = Math.floor((window.innerHeight - 40 - 50) / iconHeight); // Considerando barra de tareas
+
     // *** FUNCIONES DE AUTENTICACIÓN ***
     function initAuth() {
         auth.onAuthStateChanged((user) => {
@@ -1595,7 +1601,7 @@
         const minimizeBtn = windowElement.querySelector('[data-action="minimize"]');
         const maximizeBtn = windowElement.querySelector('[data-action="maximize"]');
         const closeBtn = windowElement.querySelector('[data-action="close"]');
-        let isMaximized = true;
+        let isMaximized = false;
 
         minimizeBtn.addEventListener('click', () => {
             windowElement.style.display = 'none';
@@ -1618,13 +1624,15 @@
                 windowElement.style.left = '0';
                 windowElement.style.resize = 'none';
                 isMaximized = true;
+                maximizeBtn.innerHTML = '<i class="fas fa-window-restore"></i>';
             } else {
-                windowElement.style.width = windowElement.dataset.originalWidth;
-                windowElement.style.height = windowElement.dataset.originalHeight;
-                windowElement.style.top = windowElement.dataset.originalTop;
-                windowElement.style.left = windowElement.dataset.originalLeft;
+                windowElement.style.width = windowElement.dataset.originalWidth || '800px';
+                windowElement.style.height = windowElement.dataset.originalHeight || '600px';
+                windowElement.style.top = windowElement.dataset.originalTop || '50px';
+                windowElement.style.left = windowElement.dataset.originalLeft || '50px';
                 windowElement.style.resize = 'both';
                 isMaximized = false;
+                maximizeBtn.innerHTML = '<i class="far fa-square"></i>';
             }
         });
 
@@ -1665,13 +1673,29 @@
             hideAllContextMenus();
             selectedIconData = item;
 
+            // Ajustar posición del menú contextual para que no se oculte detrás de la barra de tareas
+            let menuTop = e.clientY;
+            let menuLeft = e.clientX;
+            const menuHeight = 250; // Altura aproximada del menú contextual
+            const menuWidth = 200; // Ancho aproximado del menú contextual
+            
+            // Si el menú se sale por la parte inferior, mostrarlo arriba del icono
+            if (menuTop + menuHeight > window.innerHeight - 40) {
+                menuTop = e.clientY - menuHeight;
+            }
+            
+            // Si el menú se sale por la parte derecha, mostrarlo a la izquierda del icono
+            if (menuLeft + menuWidth > window.innerWidth) {
+                menuLeft = e.clientX - menuWidth;
+            }
+
             if (item.type === 'folder') {
-                folderItemContextMenu.style.left = `${e.clientX}px`;
-                folderItemContextMenu.style.top = `${e.clientY}px`;
+                folderItemContextMenu.style.left = `${menuLeft}px`;
+                folderItemContextMenu.style.top = `${menuTop}px`;
                 folderItemContextMenu.style.display = 'flex';
             } else {
-                iconContextMenu.style.left = `${e.clientX}px`;
-                iconContextMenu.style.top = `${e.clientY}px`;
+                iconContextMenu.style.left = `${menuLeft}px`;
+                iconContextMenu.style.top = `${menuTop}px`;
                 iconContextMenu.style.display = 'flex';
 
                 const isInstalledApp = userInstalledApps.has(item.id);
@@ -1820,8 +1844,21 @@
         desktop.innerHTML = '';
         const desktopLevelItems = userDesktopItems.filter(item => !findParent(item.id, userDesktopItems));
 
-        desktopLevelItems.forEach(item => {
-            desktop.appendChild(renderIcon(item));
+        // Calcular número de filas y columnas según el tamaño de pantalla
+        const iconsPerRow = Math.max(1, Math.floor((window.innerWidth - 20) / iconWidth));
+        
+        desktopLevelItems.forEach((item, index) => {
+            const iconDiv = renderIcon(item);
+            
+            // Posicionar iconos en filas y columnas
+            const row = Math.floor(index / iconsPerRow);
+            const col = index % iconsPerRow;
+            
+            iconDiv.style.position = 'absolute';
+            iconDiv.style.left = `${20 + col * iconWidth}px`;
+            iconDiv.style.top = `${20 + row * iconHeight}px`;
+            
+            desktop.appendChild(iconDiv);
         });
     }
 
@@ -1846,7 +1883,7 @@
     function openApp(appData) {
         // Verificar si la aplicación está instalada
         if (!userInstalledApps.has(appData.id)) {
-            showAlert(`La aplicación '${appData.name}' no está instalada. ¿Desea instalarla?`, () => {
+            showConfirm(`La aplicación '${appData.name}' no está instalada. ¿Desea instalarla?`, () => {
                 installApp(appData);
             });
             return;
@@ -1865,169 +1902,199 @@
             return;
         }
 
-        const appWindow = document.createElement('div');
-        appWindow.className = 'app-window';
-        appWindow.id = `app-window-${appData.id}`;
-        appWindow.dataset.type = 'app';
-        appWindow.style.zIndex = ++highestZIndex;
-        appWindow.style.width = '800px';
-        appWindow.style.height = '600px';
-        appWindow.style.top = '50px';
-        appWindow.style.left = '50px';
+        // Mostrar splash screen con el icono de la app
+        const appSplash = document.createElement('div');
+        appSplash.className = 'app-splash-screen';
+        appSplash.innerHTML = appData.faIcon ? 
+            `<i class="fas ${appData.faIcon}"></i>` : 
+            `<img src="${appData.icon}" alt="${appData.name}">`;
+        document.body.appendChild(appSplash);
 
-        // Contenido específico para cada tipo de aplicación
-        let windowContent = '';
-        
-        if (appData.id === 'app-browser') {
-            // Navegador web
-            windowContent = `
-                <div class="window-header">
-                    <div class="window-nav">
-                        <button class="back-btn" id="browser-back-btn"><i class="fas fa-arrow-left"></i></button>
-                        <button class="forward-btn" id="browser-forward-btn"><i class="fas fa-arrow-right"></i></button>
-                    </div>
-                    ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon fa-icon"></i>` : `<img src="${appData.icon}" alt="${appData.name}" class="icon">`}
-                    <span class="window-title">${appData.name}</span>
-                    <div class="window-controls">
-                        <button data-action="minimize"><i class="fas fa-minus"></i></button>
-                        <button data-action="maximize"><i class="far fa-square"></i></button>
-                        <button class="close-btn" data-action="close">&times;</button>
-                    </div>
-                </div>
-                <div class="browser-controls">
-                    <div class="browser-nav-buttons">
-                        <button id="browser-back-btn"><i class="fas fa-arrow-left"></i></button>
-                        <button id="browser-forward-btn"><i class="fas fa-arrow-right"></i></button>
-                        <button id="browser-refresh-btn"><i class="fas fa-sync-alt"></i></button>
-                    </div>
-                    <div class="browser-address-bar">
-                        <input type="text" id="browser-url" placeholder="Ingresa una URL o término de búsqueda" value="https://www.google.com">
-                        <button id="browser-go-btn">Ir</button>
-                    </div>
-                </div>
-                <div class="window-content">
-                    <iframe src="https://www.google.com" id="browser-iframe"></iframe>
-                </div>
-            `;
-        } else {
-            // Aplicación genérica (iframe)
-            windowContent = `
-                <div class="window-header">
-                    <div class="window-nav">
-                        <button class="back-btn" id="back-btn-${appData.id}"><i class="fas fa-arrow-left"></i></button>
-                        <button class="forward-btn" id="forward-btn-${appData.id}"><i class="fas fa-arrow-right"></i></button>
-                    </div>
-                    ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon fa-icon"></i>` : `<img src="${appData.icon}" alt="${appData.name}" class="icon">`}
-                    <span class="window-title">${appData.name}</span>
-                    <div class="window-controls">
-                        <button data-action="minimize"><i class="fas fa-minus"></i></button>
-                        <button data-action="maximize"><i class="far fa-square"></i></button>
-                        <button class="close-btn" data-action="close">&times;</button>
-                    </div>
-                </div>
-                <div class="window-content">
-                    <iframe src="${appData.url || 'about:blank'}"></iframe>
-                </div>
-            `;
-        }
+        setTimeout(() => {
+            appSplash.remove();
 
-        appWindow.innerHTML = windowContent;
-        document.body.appendChild(appWindow);
-        setupWindowDrag(appWindow);
-        setupWindowControls(appWindow, appData);
-
-        // Configuración específica para cada tipo de aplicación
-        if (appData.id === 'app-browser') {
-            setupBrowser(appWindow);
-        } else if (appData.url) {
-            // Configurar botones de navegación para aplicaciones genéricas
-            const backBtn = appWindow.querySelector(`#back-btn-${appData.id}`);
-            const forwardBtn = appWindow.querySelector(`#forward-btn-${appData.id}`);
-            const iframe = appWindow.querySelector('iframe');
+            const appWindow = document.createElement('div');
+            appWindow.className = 'app-window';
+            appWindow.id = `app-window-${appData.id}`;
+            appWindow.dataset.type = 'app';
+            appWindow.style.zIndex = ++highestZIndex;
             
-            backBtn.addEventListener('click', () => {
-                try {
-                    iframe.contentWindow.history.back();
-                } catch (error) {
-                    showAlert('No se puede retroceder más en el historial');
-                }
-            });
-            
-            forwardBtn.addEventListener('click', () => {
-                try {
-                    iframe.contentWindow.history.forward();
-                } catch (error) {
-                    showAlert('No se puede avanzar más en el historial');
-                }
-            });
-            
-            // Actualizar estado de los botones según el historial
-            iframe.addEventListener('load', () => {
-                try {
-                    backBtn.disabled = !iframe.contentWindow.history.length || iframe.contentWindow.history.state?.backDisabled;
-                    forwardBtn.disabled = !iframe.contentWindow.history.forward || iframe.contentWindow.history.state?.forwardDisabled;
-                } catch (error) {
-                    // Error de CORS, no podemos acceder al historial
-                    backBtn.disabled = true;
-                    forwardBtn.disabled = true;
-                }
-            });
-        }
-
-        // Agregar a la barra de tareas
-        const taskbarApp = document.createElement('div');
-        taskbarApp.className = 'taskbar-app';
-        taskbarApp.dataset.id = appData.id;
-        taskbarApp.innerHTML = `
-            ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon-fa"></i>` : `<img src="${appData.icon}" class="icon-img">`}
-            <span class="tooltip">${appData.name}</span>
-        `;
-        taskbarApp.addEventListener('click', () => {
-            if (appWindow.style.display === 'none') {
-                appWindow.style.display = 'flex';
-                appWindow.style.zIndex = ++highestZIndex;
-                taskbarApp.classList.add('active');
+            // Abrir en pantalla completa para apps RT
+            if (appData.id.startsWith('app-rt-')) {
+                appWindow.style.width = '100%';
+                appWindow.style.height = `calc(100% - ${getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height')})`;
+                appWindow.style.top = '0';
+                appWindow.style.left = '0';
+                appWindow.style.resize = 'none';
             } else {
-                appWindow.style.display = 'none';
-                taskbarApp.classList.remove('active');
+                appWindow.style.width = '800px';
+                appWindow.style.height = '600px';
+                appWindow.style.top = '50px';
+                appWindow.style.left = '50px';
             }
-        });
-        taskbarApp.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            taskbarAppContextMenu.style.left = `${e.clientX}px`;
-            taskbarAppContextMenu.style.top = `${e.clientY}px`;
-            taskbarAppContextMenu.style.display = 'flex';
-            document.getElementById('close-app-btn').onclick = () => {
-                closeModal('taskbar-app-context-menu');
-                appWindow.remove();
-                taskbarApp.remove();
-            };
-            document.getElementById('minimize-app-btn').onclick = () => {
-                closeModal('taskbar-app-context-menu');
-                appWindow.style.display = 'none';
-                taskbarApp.classList.remove('active');
-            };
-            document.getElementById('maximize-app-btn').onclick = () => {
-                closeModal('taskbar-app-context-menu');
-                if (appWindow.style.width === '100%') {
-                    appWindow.style.width = '800px';
-                    appWindow.style.height = '600px';
-                    appWindow.style.top = '50px';
-                    appWindow.style.left = '50px';
-                    appWindow.style.resize = 'both';
+
+            // Contenido específico para cada tipo de aplicación
+            let windowContent = '';
+            
+            if (appData.id === 'app-browser') {
+                // Navegador web
+                windowContent = `
+                    <div class="window-header">
+                        <div class="window-nav">
+                            <button class="back-btn" id="browser-back-btn"><i class="fas fa-arrow-left"></i></button>
+                            <button class="forward-btn" id="browser-forward-btn"><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                        ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon fa-icon"></i>` : `<img src="${appData.icon}" alt="${appData.name}" class="icon">`}
+                        <span class="window-title">${appData.name}</span>
+                        <div class="window-controls">
+                            <button data-action="minimize"><i class="fas fa-minus"></i></button>
+                            <button data-action="maximize"><i class="far fa-square"></i></button>
+                            <button class="close-btn" data-action="close">&times;</button>
+                        </div>
+                    </div>
+                    <div class="browser-controls">
+                        <div class="browser-nav-buttons">
+                            <button id="browser-back-btn"><i class="fas fa-arrow-left"></i></button>
+                            <button id="browser-forward-btn"><i class="fas fa-arrow-right"></i></button>
+                            <button id="browser-refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="browser-address-bar">
+                            <input type="text" id="browser-url" placeholder="Ingresa una URL o término de búsqueda" value="https://www.google.com">
+                            <button id="browser-go-btn">Ir</button>
+                        </div>
+                    </div>
+                    <div class="window-content">
+                        <iframe src="https://www.google.com" id="browser-iframe"></iframe>
+                    </div>
+                `;
+            } else {
+                // Aplicación genérica (iframe)
+                windowContent = `
+                    <div class="window-header">
+                        <div class="window-nav">
+                            <button class="back-btn" id="back-btn-${appData.id}"><i class="fas fa-arrow-left"></i></button>
+                            <button class="forward-btn" id="forward-btn-${appData.id}"><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                        ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon fa-icon"></i>` : `<img src="${appData.icon}" alt="${appData.name}" class="icon">`}
+                        <span class="window-title">${appData.name}</span>
+                        <div class="window-controls">
+                            <button data-action="minimize"><i class="fas fa-minus"></i></button>
+                            <button data-action="maximize"><i class="far fa-square"></i></button>
+                            <button class="close-btn" data-action="close">&times;</button>
+                        </div>
+                    </div>
+                    <div class="window-content">
+                        <iframe src="${appData.url || 'about:blank'}"></iframe>
+                    </div>
+                `;
+            }
+
+            appWindow.innerHTML = windowContent;
+            document.body.appendChild(appWindow);
+            setupWindowDrag(appWindow);
+            setupWindowControls(appWindow, appData);
+
+            // Configuración específica para cada tipo de aplicación
+            if (appData.id === 'app-browser') {
+                setupBrowser(appWindow);
+            } else if (appData.url) {
+                // Configurar botones de navegación para aplicaciones genéricas
+                const backBtn = appWindow.querySelector(`#back-btn-${appData.id}`);
+                const forwardBtn = appWindow.querySelector(`#forward-btn-${appData.id}`);
+                const iframe = appWindow.querySelector('iframe');
+                
+                backBtn.addEventListener('click', () => {
+                    try {
+                        if (iframe.contentWindow.history.length > 1) {
+                            iframe.contentWindow.history.back();
+                        } else {
+                            showAlert('No hay páginas anteriores en el historial');
+                        }
+                    } catch (error) {
+                        showAlert('No se puede retroceder más en el historial');
+                    }
+                });
+                
+                forwardBtn.addEventListener('click', () => {
+                    try {
+                        iframe.contentWindow.history.forward();
+                    } catch (error) {
+                        showAlert('No se puede avanzar más en el historial');
+                    }
+                });
+                
+                // Actualizar estado de los botones según el historial
+                iframe.addEventListener('load', () => {
+                    try {
+                        backBtn.disabled = iframe.contentWindow.history.length <= 1;
+                        forwardBtn.disabled = true; // No hay forma confiable de verificar el forward con iframes
+                    } catch (error) {
+                        // Error de CORS, no podemos acceder al historial
+                        backBtn.disabled = true;
+                        forwardBtn.disabled = true;
+                    }
+                });
+            }
+
+            // Agregar a la barra de tareas
+            const taskbarApp = document.createElement('div');
+            taskbarApp.className = 'taskbar-app';
+            taskbarApp.dataset.id = appData.id;
+            taskbarApp.innerHTML = `
+                ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon-fa"></i>` : `<img src="${appData.icon}" class="icon-img">`}
+                <span class="tooltip">${appData.name}</span>
+            `;
+            taskbarApp.addEventListener('click', () => {
+                if (appWindow.style.display === 'none') {
+                    appWindow.style.display = 'flex';
+                    appWindow.style.zIndex = ++highestZIndex;
+                    taskbarApp.classList.add('active');
                 } else {
-                    appWindow.style.width = '100%';
-                    appWindow.style.height = `calc(100% - ${getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height')})`;
-                    appWindow.style.top = '0';
-                    appWindow.style.left = '0';
-                    appWindow.style.resize = 'none';
+                    appWindow.style.display = 'none';
+                    taskbarApp.classList.remove('active');
                 }
-            };
-        });
-        runningAppsContainer.appendChild(taskbarApp);
-        const allTaskbarApps = document.querySelectorAll('.taskbar-app');
-        allTaskbarApps.forEach(app => app.classList.remove('active'));
-        taskbarApp.classList.add('active');
+            });
+            taskbarApp.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                
+                // Ajustar posición del menú contextual para que no se oculte
+                let menuTop = e.clientY;
+                let menuLeft = e.clientX;
+                const menuHeight = 120; // Altura aproximada del menú
+                const menuWidth = 200; // Ancho aproximado del menú
+                
+                if (menuTop + menuHeight > window.innerHeight - 40) {
+                    menuTop = e.clientY - menuHeight;
+                }
+                
+                if (menuLeft + menuWidth > window.innerWidth) {
+                    menuLeft = e.clientX - menuWidth;
+                }
+                
+                taskbarAppContextMenu.style.left = `${menuLeft}px`;
+                taskbarAppContextMenu.style.top = `${menuTop}px`;
+                taskbarAppContextMenu.style.display = 'flex';
+                
+                document.getElementById('close-app-btn').onclick = () => {
+                    closeModal('taskbar-app-context-menu');
+                    appWindow.remove();
+                    taskbarApp.remove();
+                };
+                document.getElementById('minimize-app-btn').onclick = () => {
+                    closeModal('taskbar-app-context-menu');
+                    appWindow.style.display = 'none';
+                    taskbarApp.classList.remove('active');
+                };
+                document.getElementById('maximize-app-btn').onclick = () => {
+                    closeModal('taskbar-app-context-menu');
+                    appWindow.querySelector('[data-action="maximize"]').click();
+                };
+            });
+            runningAppsContainer.appendChild(taskbarApp);
+            const allTaskbarApps = document.querySelectorAll('.taskbar-app');
+            allTaskbarApps.forEach(app => app.classList.remove('active'));
+            taskbarApp.classList.add('active');
+        }, 1000); // Mostrar el splash screen por 1 segundo
     }
 
     function setupBrowser(appWindow) {
@@ -2038,8 +2105,14 @@
         const browserForwardBtn = appWindow.querySelectorAll('#browser-forward-btn');
         const browserRefreshBtn = appWindow.querySelector('#browser-refresh-btn');
 
+        // Historial de navegación para el navegador
+        const browserHistory = {
+            stack: [],
+            current: -1
+        };
+
         // Función para cargar una URL
-        function loadUrl(url) {
+        function loadUrl(url, addToHistory = true) {
             try {
                 // Si es una búsqueda de Google
                 if (!url.startsWith('http') && !url.startsWith('https') && !url.startsWith('file')) {
@@ -2057,9 +2130,28 @@
                 
                 browserIframe.src = url;
                 browserUrlInput.value = url;
+                
+                // Agregar al historial
+                if (addToHistory) {
+                    browserHistory.stack = browserHistory.stack.slice(0, browserHistory.current + 1);
+                    browserHistory.stack.push(url);
+                    browserHistory.current = browserHistory.stack.length - 1;
+                    updateBrowserNavButtons();
+                }
             } catch (error) {
                 showAlert('Error al cargar la página: ' + error.message);
             }
+        }
+
+        // Actualizar estado de los botones de navegación
+        function updateBrowserNavButtons() {
+            browserBackBtn.forEach(btn => {
+                btn.disabled = browserHistory.current <= 0;
+            });
+            
+            browserForwardBtn.forEach(btn => {
+                btn.disabled = browserHistory.current >= browserHistory.stack.length - 1;
+            });
         }
 
         // Event listeners
@@ -2076,10 +2168,9 @@
         // Configurar ambos botones de retroceso
         browserBackBtn.forEach(btn => {
             btn.addEventListener('click', () => {
-                try {
-                    browserIframe.contentWindow.history.back();
-                } catch (error) {
-                    showAlert('No se puede retroceder más en el historial');
+                if (browserHistory.current > 0) {
+                    browserHistory.current--;
+                    loadUrl(browserHistory.stack[browserHistory.current], false);
                 }
             });
         });
@@ -2087,10 +2178,9 @@
         // Configurar ambos botones de avance
         browserForwardBtn.forEach(btn => {
             btn.addEventListener('click', () => {
-                try {
-                    browserIframe.contentWindow.history.forward();
-                } catch (error) {
-                    showAlert('No se puede avanzar más en el historial');
+                if (browserHistory.current < browserHistory.stack.length - 1) {
+                    browserHistory.current++;
+                    loadUrl(browserHistory.stack[browserHistory.current], false);
                 }
             });
         });
@@ -2108,6 +2198,9 @@
                 browserUrlInput.value = browserIframe.src;
             }
         });
+
+        // Cargar página inicial
+        loadUrl('https://www.google.com');
     }
 
     function openFolder(folderData) {
@@ -2333,6 +2426,84 @@
         }
     }
 
+    // Función para mostrar modal de permisos con enlaces
+    function showPermissionsModal() {
+        const permissionsModal = document.createElement('div');
+        permissionsModal.className = 'os-modal';
+        permissionsModal.innerHTML = `
+            <div class="os-modal-content">
+                <h3>Panel de Permisos del Sistema</h3>
+                <div style="text-align: left; margin-bottom: 20px;">
+                    <p>Gestión de permisos para aplicaciones y sistema:</p>
+                    <div class="permission-item">
+                        <input type="checkbox" id="perm-storage" checked>
+                        <label for="perm-storage">Acceso a almacenamiento</label>
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox" id="perm-camera">
+                        <label for="perm-camera">Acceso a cámara</label>
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox" id="perm-microphone">
+                        <label for="perm-microphone">Acceso a micrófono</label>
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox" id="perm-location">
+                        <label for="perm-location">Acceso a ubicación</label>
+                    </div>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                    <a href="https://policies.google.com/privacy" target="_blank" style="padding: 8px 15px; background-color: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333;">Política de Privacidad</a>
+                    <a href="https://policies.google.com/terms" target="_blank" style="padding: 8px 15px; background-color: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333;">Términos de Servicio</a>
+                    <a href="https://support.google.com" target="_blank" style="padding: 8px 15px; background-color: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333;">Soporte</a>
+                </div>
+                <button onclick="this.closest('.os-modal').remove()" style="margin-top: 20px;">Cerrar</button>
+            </div>
+        `;
+        document.body.appendChild(permissionsModal);
+        permissionsModal.style.display = 'flex';
+    }
+
+    // Configurar atajos de teclado
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+Z - Deshacer
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            showAlert('Función Deshacer activada');
+        }
+        // Ctrl+X - Cortar
+        else if (e.ctrlKey && e.key === 'x') {
+            e.preventDefault();
+            if (selectedIconData) {
+                document.getElementById('cut-icon-btn').click();
+            }
+        }
+        // Ctrl+C - Copiar
+        else if (e.ctrlKey && e.key === 'c') {
+            e.preventDefault();
+            if (selectedIconData) {
+                document.getElementById('copy-icon-btn').click();
+            }
+        }
+        // Ctrl+V - Pegar
+        else if (e.ctrlKey && e.key === 'v') {
+            e.preventDefault();
+            if (clipboard) {
+                document.getElementById('paste-btn').click();
+            }
+        }
+        // Ctrl+Y - Rehacer
+        else if (e.ctrlKey && e.key === 'y') {
+            e.preventDefault();
+            showAlert('Función Rehacer activada');
+        }
+        // Ctrl+Alt+P - Panel de permisos
+        else if (e.ctrlKey && e.altKey && e.key === 'p') {
+            e.preventDefault();
+            showPermissionsModal();
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         // Inicializar Firebase Auth
         initAuth();
@@ -2351,6 +2522,9 @@
         } else {
             document.getElementById('storage-info').textContent = 'No disponible';
         }
+
+        // Actualizar el diseño del escritorio cuando cambia el tamaño de la ventana
+        window.addEventListener('resize', renderDesktop);
     });
 
     document.addEventListener('click', (e) => {
@@ -2373,8 +2547,23 @@
     desktop.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         hideAllContextMenus();
-        desktopContextMenu.style.left = `${e.clientX}px`;
-        desktopContextMenu.style.top = `${e.clientY}px`;
+        
+        // Ajustar posición del menú contextual para que no se oculte
+        let menuTop = e.clientY;
+        let menuLeft = e.clientX;
+        const menuHeight = 250; // Altura aproximada del menú contextual
+        const menuWidth = 200; // Ancho aproximado del menú contextual
+        
+        if (menuTop + menuHeight > window.innerHeight - 40) {
+            menuTop = e.clientY - menuHeight;
+        }
+        
+        if (menuLeft + menuWidth > window.innerWidth) {
+            menuLeft = e.clientX - menuWidth;
+        }
+        
+        desktopContextMenu.style.left = `${menuLeft}px`;
+        desktopContextMenu.style.top = `${menuTop}px`;
         desktopContextMenu.style.display = 'flex';
 
         document.getElementById('paste-btn').style.display = clipboard ? 'flex' : 'none';
@@ -2438,8 +2627,8 @@
     });
 
     document.getElementById('refresh-btn').addEventListener('click', () => {
-        renderDesktop();
-        hideAllContextMenus();
+        // Recargar la página en lugar de solo el escritorio
+        window.location.reload();
     });
 
     document.getElementById('personalize-btn').addEventListener('click', () => {
@@ -2491,8 +2680,23 @@
 
     document.getElementById('new-submenu').addEventListener('click', (e) => {
         e.stopPropagation();
-        newFolderMenu.style.left = `${e.target.getBoundingClientRect().right}px`;
-        newFolderMenu.style.top = `${e.target.getBoundingClientRect().top}px`;
+        
+        // Ajustar posición del submenú
+        let menuTop = e.target.getBoundingClientRect().top;
+        let menuLeft = e.target.getBoundingClientRect().right;
+        const menuHeight = 100; // Altura aproximada del submenú
+        const menuWidth = 180; // Ancho aproximado del submenú
+        
+        if (menuTop + menuHeight > window.innerHeight - 40) {
+            menuTop = e.target.getBoundingClientRect().top - menuHeight;
+        }
+        
+        if (menuLeft + menuWidth > window.innerWidth) {
+            menuLeft = e.target.getBoundingClientRect().left - menuWidth;
+        }
+        
+        newFolderMenu.style.left = `${menuLeft}px`;
+        newFolderMenu.style.top = `${menuTop}px`;
         newFolderMenu.style.display = 'flex';
     });
 
@@ -2552,7 +2756,7 @@
             
             const cDrive = userDesktopItems.find(item => item.id === 'c-drive');
             if (cDrive) {
-                const newApp = { ...appData, id: `app-${Date.now()}`, type: 'app' };
+                const newApp = { ...appData, id: `app-rt-${Date.now()}`, type: 'app' };
                 cDrive.content.push(newApp);
                 saveUserData();
                 
@@ -2795,8 +2999,22 @@
                 const folderData = findItemById(folderId, userDesktopItems);
                 selectedIconData = findItemById(itemId, folderData.content);
 
-                folderItemContextMenu.style.left = `${e.clientX}px`;
-                folderItemContextMenu.style.top = `${e.clientY}px`;
+                // Ajustar posición del menú contextual
+                let menuTop = e.clientY;
+                let menuLeft = e.clientX;
+                const menuHeight = 250;
+                const menuWidth = 200;
+                
+                if (menuTop + menuHeight > window.innerHeight - 40) {
+                    menuTop = e.clientY - menuHeight;
+                }
+                
+                if (menuLeft + menuWidth > window.innerWidth) {
+                    menuLeft = e.clientX - menuWidth;
+                }
+
+                folderItemContextMenu.style.left = `${menuLeft}px`;
+                folderItemContextMenu.style.top = `${menuTop}px`;
                 folderItemContextMenu.style.display = 'flex';
             });
         });
@@ -2856,7 +3074,7 @@
         hideAllContextMenus();
         if (!selectedIconData) return;
         showPrompt('Renombrar', (newName) => {
-            if (newName) {
+            if (newName) { 
                 const itemToRename = findItemById(selectedIconData.id, userDesktopItems);
                 if (itemToRename) {
                     itemToRename.name = newName;
