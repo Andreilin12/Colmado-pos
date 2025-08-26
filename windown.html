@@ -1,0 +1,2882 @@
+html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web OS - Iniciar Sesión</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-storage-compat.js"></script>
+    <!-- Font Awesome para los iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --taskbar-height: 40px;
+            --start-menu-width: 280px;
+            --start-menu-height: 400px;
+            --blue-accent: #0078d7;
+            --dark-bg: rgba(30, 30, 30, 0.9);
+            --icon-size: 50px;
+            --window-bg: #f0f0f0;
+            --window-header: #0078d7;
+            --window-border: #ccc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #337ab7;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            background-image: url('https://images.unsplash.com/photo-1499002238440-d264edd596ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Estilos para la pantalla de login */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            width: 350px;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        .login-title {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--blue-accent);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .login-button:hover {
+            background-color: #005fa3;
+        }
+
+        .login-links {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .login-link {
+            color: var(--blue-accent);
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .login-error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+
+        #desktop {
+            flex-grow: 1;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            position: relative;
+            z-index: 1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            flex-direction: column;
+        }
+
+        .desktop-icon {
+            width: 80px;
+            text-align: center;
+            margin: 10px;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s ease;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .desktop-icon:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .desktop-icon.selected {
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+        }
+
+        .desktop-icon .icon-img {
+            width: var(--icon-size);
+            height: var(--icon-size);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            object-fit: contain;
+        }
+
+        .desktop-icon .icon-fa {
+            font-size: var(--icon-size);
+            color: #fff;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .desktop-icon.folder-icon .icon-fa {
+            color: gold;
+        }
+
+        .desktop-icon.cut {
+            opacity: 0.5;
+        }
+
+        .desktop-icon span {
+            display: block;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px black;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 5px;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 5px 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .taskbar-app:hover .tooltip {
+            visibility: visible;
+        }
+
+        #taskbar {
+            height: var(--taskbar-height);
+            background-color: var(--dark-bg);
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            z-index: 1000;
+        }
+
+        #start-button {
+            background-color: var(--blue-accent);
+            width: 40px;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background-color 0.2s ease;
+        }
+        #start-button:hover {
+            background-color: #005aa7;
+        }
+
+        #start-menu {
+            position: absolute;
+            bottom: var(--taskbar-height);
+            left: 0;
+            width: var(--start-menu-width);
+            height: var(--start-menu-height);
+            background-color: rgba(45, 45, 45, 0.95);
+            color: white;
+            display: none;
+            flex-direction: column;
+            padding: 10px;
+            box-shadow: 5px 5px 20px rgba(0,0,0,0.5);
+            z-index: 999;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .start-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            gap: 10px;
+            border-radius: 4px;
+        }
+        .start-menu-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .start-menu-item i {
+            font-size: 1.2rem;
+            width: 25px;
+            text-align: center;
+        }
+
+        .app-window {
+            position: absolute;
+            background-color: var(--window-bg);
+            border: 1px solid var(--window-border);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            resize: both;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+            min-width: 400px;
+            min-height: 300px;
+            transition: transform 0.3s ease, top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .window-header {
+            background-color: var(--window-header);
+            color: white;
+            padding: 8px;
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        .window-header .icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 5px;
+            object-fit: contain;
+        }
+        .window-header .icon.fa-icon {
+            font-size: 16px;
+        }
+
+        .window-title { 
+            flex-grow: 1; 
+            margin-left: 5px; 
+            font-weight: 500;
+        }
+
+        .window-controls { 
+            display: flex; 
+        }
+        .window-controls button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            padding: 0 8px;
+            cursor: pointer;
+            line-height: 1;
+            transition: background-color 0.2s ease;
+            border-radius: 3px;
+        }
+        .window-controls button:hover { 
+            background-color: rgba(255, 255, 255, 0.2); 
+        }
+        .window-controls .close-btn:hover { 
+            background-color: #e81123; 
+        }
+
+        .window-nav { 
+            display: flex; 
+            gap: 5px; 
+            margin-right: 10px; 
+        }
+        .window-nav button { 
+            color: white; 
+            background: none; 
+            border: none; 
+            font-size: 14px; 
+            cursor: pointer; 
+            width: 28px;
+            height: 28px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .window-nav button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .window-nav button:disabled { 
+            color: rgba(255, 255, 255, 0.5); 
+            cursor: not-allowed; 
+            background: none;
+        }
+        .window-nav button:disabled:hover {
+            background: none;
+        }
+
+        .window-content { 
+            flex-grow: 1; 
+            overflow: auto;
+        }
+        .window-content iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        #loading-screen h1 { 
+            font-size: 5rem; 
+            margin-bottom: 20px;
+        }
+
+        .app-splash-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5000;
+            animation: fadeInOut 2s forwards;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.8);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .app-splash-screen img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            animation: pulse 1s infinite alternate;
+        }
+        
+        .app-splash-screen i {
+            font-size: 120px;
+            color: #fff;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            25% { opacity: 1; }
+            75% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        #running-apps {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-grow: 1;
+        }
+
+        .taskbar-app {
+            height: 100%;
+            min-width: 40px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            position: relative;
+            border-radius: 4px;
+        }
+        .taskbar-app:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .taskbar-app.active {
+            border-bottom-color: var(--blue-accent);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .taskbar-app .icon-img, .taskbar-app .icon-fa {
+            width: 25px;
+            height: 25px;
+        }
+
+        .context-menu {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            padding: 5px 0;
+            font-size: 14px;
+            border-radius: 5px;
+            min-width: 180px;
+        }
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .context-menu-item:hover {
+            background-color: #f0f0f0;
+        }
+        .context-menu-divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 5px 0;
+        }
+
+        .os-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+        }
+        .os-modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 350px;
+            text-align: center;
+        }
+        .os-modal-content h3 { 
+            margin-top: 0; 
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .os-modal-content input { 
+            width: 90%; 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .os-modal-content button { 
+            padding: 8px 15px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none; 
+            background-color: #eee; 
+            border-radius: 4px; 
+            transition: background-color 0.2s;
+        }
+        .os-modal-content button:hover { 
+            background-color: #ddd; 
+        }
+        .os-modal-content .main-btn { 
+            background-color: var(--blue-accent); 
+            color: white; 
+        }
+        .os-modal-content .main-btn:hover { 
+            background-color: #005aa7; 
+        }
+
+        #personalize-modal .os-modal-content {
+            width: 500px;
+        }
+        #personalize-modal .option-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        #personalize-modal .option-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        #panel-control-modal .os-modal-content { 
+            width: 500px; 
+            text-align: left; 
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* Estilos para la simulación de apagado */
+        #shutdown-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20000;
+        }
+
+        #shutdown-screen .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estilos para el navegador web */
+        .browser-controls {
+            display: flex;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ccc;
+            align-items: center;
+        }
+
+        .browser-nav-buttons {
+            display: flex;
+            gap: 5px;
+            margin-right: 10px;
+        }
+
+        .browser-nav-buttons button {
+            width: 32px;
+            height: 32px;
+            border-radius: 3px;
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .browser-nav-buttons button:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .browser-address-bar {
+            flex-grow: 1;
+            display: flex;
+            gap: 5px;
+        }
+
+        .browser-address-bar input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .browser-address-bar button {
+            padding: 8px 15px;
+            background-color: var(--blue-accent);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        /* Estilos para el panel de control mejorado */
+        .control-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .control-panel-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .control-panel-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .control-panel-item i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--blue-accent);
+        }
+
+        /* Estilos para la fecha y hora en la barra de tareas */
+        #datetime-display {
+            padding: 0 15px;
+            font-size: 14px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #time-display {
+            font-weight: bold;
+        }
+
+        #date-display {
+            font-size: 12px;
+        }
+
+        /* Estilos para el contenido de carpetas */
+        .folder-content {
+            padding: 10px;
+            background-color: white;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-content: flex-start;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Estilos para las ventanas de carpeta */
+        .folder-window .window-content {
+            padding: 0;
+            background-color: white;
+        }
+
+        /* Nuevos estilos para personalización */
+        .theme-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .theme-option {
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .theme-option:hover {
+            transform: scale(1.05);
+        }
+
+        .theme-option.blue {
+            background: linear-gradient(135deg, #0078d7, #005fa3);
+            color: white;
+        }
+
+        .theme-option.green {
+            background: linear-gradient(135deg, #107c10, #0a5c0a);
+            color: white;
+        }
+
+        .theme-option.purple {
+            background: linear-gradient(135deg, #8661c5, #6b3d9e);
+            color: white;
+        }
+
+        .theme-option.red {
+            background: linear-gradient(135deg, #e81123, #c50f1f);
+            color: white;
+        }
+
+        .wallpaper-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .wallpaper-option {
+            height: 80px;
+            border-radius: 5px;
+            cursor: pointer;
+            background-size: cover;
+            background-position: center;
+            transition: transform 0.2s;
+        }
+
+        .wallpaper-option:hover {
+            transform: scale(1.05);
+        }
+
+        .wallpaper-option.active {
+            border: 3px solid var(--blue-accent);
+        }
+
+        /* Estilos para el usuario en la barra de tareas */
+        #user-display {
+            padding: 0 15px;
+            font-size: 14px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        #logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        #logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* CORRECCIONES PARA EL PANEL DE CONTROL */
+        #installed-apps-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .installed-app-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            gap: 10px;
+        }
+
+        .installed-app-item:last-child {
+            border-bottom: none;
+        }
+
+        .installed-app-item i {
+            font-size: 1.5rem;
+            width: 30px;
+            text-align: center;
+            color: var(--blue-accent);
+        }
+
+        .installed-app-item span {
+            flex-grow: 1;
+        }
+
+        .app-action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .app-action-button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .app-action-button:hover {
+            background-color: #ddd;
+        }
+
+        .app-action-button.uninstall {
+            background-color: #ff4d4d;
+            color: white;
+        }
+
+        .app-action-button.uninstall:hover {
+            background-color: #e60000;
+        }
+
+        /* Estilos para apps RT */
+        .rt-app-icon {
+            position: relative;
+        }
+
+        .rt-app-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff4d4d;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Login -->
+    <div id="login-screen">
+        <div class="login-container">
+            <img src="https://cdn-icons-png.flaticon.com/512/5087/5087579.png" alt="Web OS Logo" class="login-logo">
+            <h2 class="login-title">Iniciar Sesión en Web OS</h2>
+            <input type="email" id="login-email" class="login-input" placeholder="Correo electrónico">
+            <input type="password" id="login-password" class="login-input" placeholder="Contraseña">
+            <button id="login-btn" class="login-button">Iniciar Sesión</button>
+            <div class="login-links">
+                <a href="#" class="login-link" id="register-link">Crear cuenta</a>
+                <a href="#" class="login-link" id="reset-link">¿Olvidaste tu contraseña?</a>
+            </div>
+            <div id="login-error" class="login-error">Error al iniciar sesión</div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Carga Inicial -->
+    <div id="loading-screen" style="display: none;">
+        <h1><i class="fab fa-windows"></i></h1>
+        <p>Iniciando Web OS...</p>
+    </div>
+
+    <!-- Pantalla de Apagado -->
+    <div id="shutdown-screen">
+        <div class="spinner"></div>
+        <p>Apagando...</p>
+    </div>
+
+    <!-- Escritorio -->
+    <div id="desktop" style="display: none;">
+        <!-- Iconos del escritorio -->
+    </div>
+
+    <!-- Barra de Tareas (Taskbar) -->
+    <div id="taskbar" style="display: none;">
+        <div id="start-button"><i class="fab fa-windows"></i></div>
+        <div id="running-apps"></div>
+        <div id="datetime-display">
+            <div id="time-display">00:00:00</div>
+            <div id="date-display">Cargando...</div>
+        </div>
+        <div id="user-display">
+            <img id="user-avatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Usuario">
+            <span id="user-name">Usuario</span>
+            <button id="logout-btn" title="Cerrar sesión"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </div>
+
+    <!-- Menú de Inicio -->
+    <div id="start-menu">
+        <div class="start-menu-item" id="import-app-btn"><i class="fas fa-file-import"></i> <span>Importar App RT</span></div>
+        <div class="start-menu-item" id="config-btn"><i class="fas fa-cog"></i> <span>Configuración</span></div>
+        <div class="start-menu-item" id="shutdown-btn"><i class="fas fa-power-off"></i> <span>Apagar</span></div>
+    </div>
+
+    <!-- Menú Contextual del Escritorio -->
+    <div class="context-menu" id="desktop-context-menu">
+        <div class="context-menu-item" id="refresh-btn"><i class="fas fa-sync-alt"></i> Actualizar</div>
+        <div class="context-menu-item" id="paste-btn"><i class="fas fa-paste"></i> Pegar</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="personalize-btn"><i class="fas fa-palette"></i> Personalizar</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="new-submenu"><i class="fas fa-plus"></i> Nuevo <i class="fas fa-caret-right" style="margin-left: auto;"></i></div>
+    </div>
+
+    <!-- Submenú de 'Nuevo' -->
+    <div class="context-menu" id="new-folder-menu">
+        <div class="context-menu-item" id="create-folder-btn"><i class="fas fa-folder"></i> Carpeta</div>
+        <div class="context-menu-item" id="create-text-file-btn"><i class="fas fa-file-alt"></i> Documento de texto</div>
+    </div>
+
+    <!-- Menú Contextual de Archivos y Apps -->
+    <div class="context-menu" id="icon-context-menu">
+        <div class="context-menu-item" id="open-icon-btn"><i class="fas fa-external-link-alt"></i> Abrir</div>
+        <div class="context-menu-item" id="cut-icon-btn"><i class="fas fa-cut"></i> Cortar</div>
+        <div class="context-menu-item" id="copy-icon-btn"><i class="fas fa-copy"></i> Copiar</div>
+        <div class="context-menu-item" id="duplicate-icon-btn"><i class="fas fa-clone"></i> Duplicar</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="rename-icon-btn"><i class="fas fa-pencil-alt"></i> Renombrar</div>
+        <div class="context-menu-item" id="delete-icon-btn"><i class="fas fa-trash-alt"></i> Eliminar</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="install-app-btn" style="display: none;"><i class="fas fa-download"></i> Instalar</div>
+        <div class="context-menu-item" id="uninstall-app-btn" style="display: none;"><i class="fas fa-times-circle"></i> Desinstalar</div>
+        <div class="context-menu-item" id="remove-from-desktop-btn" style="display: none;"><i class="fas fa-minus-circle"></i> Quitar del escritorio</div>
+    </div>
+
+    <!-- Menú Contextual de Carpetas (dentro de una ventana de carpeta) -->
+    <div class="context-menu" id="folder-item-context-menu">
+        <div class="context-menu-item" id="open-folder-item-btn"><i class="fas fa-external-link-alt"></i> Abrir</div>
+        <div class="context-menu-item" id="cut-folder-item-btn"><i class="fas fa-cut"></i> Cortar</div>
+        <div class="context-menu-item" id="copy-folder-item-btn"><i class="fas fa-copy"></i> Copiar</div>
+        <div class="context-menu-item" id="duplicate-folder-item-btn"><i class="fas fa-clone"></i> Duplicar</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="rename-folder-item-btn"><i class="fas fa-pencil-alt"></i> Renombrar</div>
+        <div class="context-menu-item" id="delete-folder-item-btn"><i class="fas fa-trash-alt"></i> Eliminar</div>
+    </div>
+
+    <!-- Modal de Personalizar -->
+    <div class="os-modal" id="personalize-modal">
+        <div class="os-modal-content">
+            <h3>Personalizar</h3>
+            <div class="option-item" id="change-bg-btn">
+                <i class="fas fa-image" style="font-size: 2rem;"></i>
+                <span>Cambiar Fondo de Escritorio</span>
+            </div>
+            <div class="option-item" id="change-theme-btn">
+                <i class="fas fa-paint-brush" style="font-size: 2rem;"></i>
+                <span>Cambiar Tema de Color</span>
+            </div>
+            <div class="option-item" id="change-icons-btn">
+                <i class="fas fa-icons" style="font-size: 2rem;"></i>
+                <span>Cambiar Tamaño de Iconos</span>
+            </div>
+            <button onclick="closeModal('personalize-modal')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración -->
+    <div class="os-modal" id="settings-modal">
+        <div class="os-modal-content">
+            <h3>Configuración</h3>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+                <div class="desktop-icon" id="panel-control-btn" style="color: black;"><i class="fas fa-cogs fa-2x" style="color: black;"></i><span>Panel de Control</span></div>
+                <div class="desktop-icon" id="system-info-btn" style="color: black;"><i class="fas fa-info-circle fa-2x" style="color: black;"></i><span>Información del Sistema</span></div>
+            </div>
+            <button onclick="closeModal('settings-modal')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Panel de Control -->
+    <div class="os-modal" id="control-panel-modal">
+        <div class="os-modal-content">
+            <h3>Panel de Control</h3>
+            <div class="control-panel-grid">
+                <div class="control-panel-item" id="apps-management-btn">
+                    <i class="fas fa-th"></i>
+                    <span>Aplicaciones</span>
+                </div>
+                <div class="control-panel-item" id="privacy-settings-btn">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Privacidad</span>
+                </div>
+                <div class="control-panel-item" id="update-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Actualizaciones</span>
+                </div>
+                <div class="control-panel-item" id="backup-btn">
+                    <i class="fas fa-hdd"></i>
+                    <span>Copia de Seguridad</span>
+                </div>
+                <div class="control-panel-item" id="accessibility-btn">
+                    <i class="fas fa-wheelchair"></i>
+                    <span>Accesibilidad</span>
+                </div>
+                <div class="control-panel-item" id="network-btn">
+                    <i class="fas fa-wifi"></i>
+                    <span>Red</span>
+                </div>
+            </div>
+            <div id="installed-apps-list" style="margin-top: 20px;">
+                <h4>Aplicaciones Instaladas</h4>
+                <div class="installed-apps-container" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            <button onclick="closeModal('control-panel-modal')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Información del Sistema -->
+    <div class="os-modal" id="system-info-modal">
+        <div class="os-modal-content">
+            <h3>Información del Sistema</h3>
+            <div style="text-align: left;">
+                <p><strong>Sistema Operativo:</strong> Web OS v2.0</p>
+                <p><strong>Navegador:</strong> <span id="browser-info"></span></p>
+                <p><strong>Resolución:</strong> <span id="screen-resolution"></span></p>
+                <p><strong>Memoria:</strong> <span id="memory-info">No disponible</span></p>
+                <p><strong>Almacenamiento:</strong> <span id="storage-info"></span></p>
+            </div>
+            <button onclick="closeModal('system-info-modal')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta/Confirmación -->
+    <div class="os-modal" id="alert-modal">
+        <div class="os-modal-content">
+            <p id="alert-message"></p>
+            <button class="main-btn" onclick="closeModal('alert-modal')">OK</button>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div class="os-modal" id="confirm-modal">
+        <div class="os-modal-content">
+            <p id="confirm-message"></p>
+            <button id="confirm-ok-btn" class="main-btn">Sí</button>
+            <button id="confirm-cancel-btn">No</button>
+        </div>
+    </div>
+
+    <!-- Modal de Prompt (input) -->
+    <div class="os-modal" id="prompt-modal">
+        <div class="os-modal-content">
+            <h3 id="prompt-title"></h3>
+            <input type="text" id="prompt-input">
+            <button id="prompt-ok-btn" class="main-btn">OK</button>
+            <button onclick="closeModal('prompt-modal')">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Modal para el menú de la app en la barra de tareas -->
+    <div class="context-menu" id="taskbar-app-context-menu">
+        <div class="context-menu-item" id="close-app-btn"><i class="fas fa-times-circle"></i> Cerrar aplicación</div>
+        <div class="context-menu-item" id="minimize-app-btn"><i class="fas fa-window-minimize"></i> Minimizar</div>
+        <div class="context-menu-item" id="maximize-app-btn"><i class="fas fa-window-maximize"></i> Maximizar</div>
+    </div>
+
+    <!-- Modal para temas -->
+    <div class="os-modal" id="theme-modal">
+        <div class="os-modal-content">
+            <h3>Seleccionar Tema</h3>
+            <div class="theme-options">
+                <div class="theme-option blue" data-theme="blue">
+                    <i class="fas fa-palette fa-2x"></i>
+                    <p>Azul</p>
+                </div>
+                <div class="theme-option green" data-theme="green">
+                    <i class="fas fa-palette fa-2x"></i>
+                    <p>Verde</p>
+                </div>
+                <div class="theme-option purple" data-theme="purple">
+                    <i class="fas fa-palette fa-2x"></i>
+                    <p>Púrpura</p>
+                </div>
+                <div class="theme-option red" data-theme="red">
+                    <i class="fas fa-palette fa-2x"></i>
+                    <p>Rojo</p>
+                </div>
+            </div>
+            <button onclick="closeModal('theme-modal')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal para fondos de pantalla -->
+    <div class="os-modal" id="wallpaper-modal">
+        <div class="os-modal-content">
+            <h3>Seleccionar Fondo de Pantalla</h3>
+            <div class="wallpaper-options">
+                <div class="wallpaper-option" style="background-image: url('https://images.unsplash.com/photo-1499002238440-d264edd596ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')" data-wallpaper="url('https://images.unsplash.com/photo-1499002238440-d264edd596ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')"></div>
+                <div class="wallpaper-option" style="background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')" data-wallpaper="url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')"></div>
+                <div class="wallpaper-option" style="background-image: url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1574&q=80')" data-wallpaper="url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1574&q=80')"></div>
+                <div class="wallpaper-option" style="background-image: url('https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1476&q=80')" data-wallpaper="url('https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1476&q=80')"></div>
+                <div class="wallpaper-option" style="background-image: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1575&q=80')" data-wallpaper="url('https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1575&q=80')"></div>
+                <div class="wallpaper-option" style="background-image: url('https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')" data-wallpaper="url('https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')"></div>
+            </div>
+            <button onclick="closeModal('wallpaper-modal')">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+    // *** CONFIGURACIÓN DE FIREBASE ***
+    const firebaseConfig = {
+        apiKey: "AIzaSyDLi-egzQlgbKW8XV_qIhU6313Gd8gocCg",
+        authDomain: "inventario-35d6b.firebaseapp.com",
+        databaseURL: "https://inventario-35d6b-default-rtdb.firebaseio.com",
+        projectId: "inventario-35d6b",
+        storageBucket: "inventario-35d6b.appspot.com",
+        messagingSenderId: "266100399659",
+        appId: "1:266100399659:web:92358d28cbd803c8a7d46e"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Variables globales
+    let currentUser = null;
+    let userSettings = {};
+    let userDesktopItems = [];
+    let userInstalledApps = new Set();
+    let userDataUnsubscribe = null;
+
+    // *** VARIABLES GLOBALES Y UTILIDADES ***
+    const desktop = document.getElementById('desktop');
+    const startMenu = document.getElementById('start-menu');
+    const runningAppsContainer = document.getElementById('running-apps');
+    const desktopContextMenu = document.getElementById('desktop-context-menu');
+    const iconContextMenu = document.getElementById('icon-context-menu');
+    const folderItemContextMenu = document.getElementById('folder-item-context-menu');
+    const newFolderMenu = document.getElementById('new-folder-menu');
+    const taskbarAppContextMenu = document.getElementById('taskbar-app-context-menu');
+    const timeDisplay = document.getElementById('time-display');
+    const dateDisplay = document.getElementById('date-display');
+    const loginScreen = document.getElementById('login-screen');
+    const loadingScreen = document.getElementById('loading-screen');
+
+    let selectedIconData = null;
+    let highestZIndex = 10;
+    let clipboard = null;
+    let clipboardAction = null; // 'copy' o 'cut'
+
+    const MODAL_ALERT = 'alert-modal';
+    const MODAL_CONFIRM = 'confirm-modal';
+    const MODAL_PROMPT = 'prompt-modal';
+
+    const history = {}; // Historial de navegación por ventana de carpeta
+
+    // *** FUNCIONES DE AUTENTICACIÓN ***
+    function initAuth() {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Usuario ha iniciado sesión
+                currentUser = user;
+                document.getElementById('user-name').textContent = user.displayName || user.email;
+                
+                // Cargar foto de perfil
+                if (user.photoURL) {
+                    document.getElementById('user-avatar').src = user.photoURL;
+                } else {
+                    // Intentar obtener la foto de perfil desde Firestore si está disponible
+                    db.collection('users').doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists && doc.data().photoURL) {
+                                document.getElementById('user-avatar').src = doc.data().photoURL;
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Error loading user photo:", error);
+                        });
+                }
+                
+                loadUserData();
+            } else {
+                // No hay usuario, mostrar pantalla de login
+                showLoginScreen();
+            }
+        });
+
+        // Configurar eventos de login
+        document.getElementById('login-btn').addEventListener('click', loginUser);
+        document.getElementById('register-link').addEventListener('click', showRegisterModal);
+        document.getElementById('reset-link').addEventListener('click', showResetModal);
+        document.getElementById('logout-btn').addEventListener('click', logoutUser);
+    }
+
+    function showLoginScreen() {
+        loginScreen.style.display = 'flex';
+        document.getElementById('desktop').style.display = 'none';
+        document.getElementById('taskbar').style.display = 'none';
+    }
+
+    function hideLoginScreen() {
+        loginScreen.style.display = 'none';
+        document.getElementById('desktop').style.display = 'flex';
+        document.getElementById('taskbar').style.display = 'flex';
+    }
+
+    function loginUser() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorElement = document.getElementById('login-error');
+
+        auth.signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Inicio de sesión exitoso
+                errorElement.style.display = 'none';
+                loadingScreen.style.display = 'flex';
+                
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    hideLoginScreen();
+                }, 2000);
+            })
+            .catch((error) => {
+                // Error en inicio de sesión
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+            });
+    }
+
+    function showRegisterModal() {
+        showPrompt('Crear nueva cuenta - Correo electrónico:', (email) => {
+            if (email) {
+                showPrompt('Crear nueva cuenta - Contraseña:', (password) => {
+                    if (password) {
+                        showPrompt('Crear nueva cuenta - Nombre:', (displayName) => {
+                            if (displayName) {
+                                registerUser(email, password, displayName);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function registerUser(email, password, displayName) {
+        auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Usuario creado exitosamente
+                return userCredential.user.updateProfile({
+                    displayName: displayName
+                });
+            })
+            .then(() => {
+                showAlert('Cuenta creada exitosamente. Ya puede iniciar sesión.');
+            })
+            .catch((error) => {
+                showAlert('Error al crear cuenta: ' + error.message);
+            });
+    }
+
+    function showResetModal() {
+        showPrompt('Restablecer contraseña - Ingrese su correo electrónico:', (email) => {
+            if (email) {
+                auth.sendPasswordResetEmail(email)
+                    .then(() => {
+                        showAlert('Se ha enviado un correo para restablecer su contraseña.');
+                    })
+                    .catch((error) => {
+                        showAlert('Error: ' + error.message);
+                    });
+            }
+        });
+    }
+
+    function logoutUser() {
+        showConfirm('¿Está seguro que desea cerrar sesión?', () => {
+            if (userDataUnsubscribe) {
+                userDataUnsubscribe();
+            }
+            
+            auth.signOut().then(() => {
+                showLoginScreen();
+                showAlert('Sesión cerrada correctamente.');
+            }).catch((error) => {
+                showAlert('Error al cerrar sesión: ' + error.message);
+            });
+        });
+    }
+
+    // *** FUNCIONES DE ALMACENAMIENTO EN FIREBASE ***
+    function loadUserData() {
+        if (!currentUser) return;
+        
+        // Cargar configuración del usuario
+        db.collection('users').doc(currentUser.uid).get()
+            .then((doc) => {
+                if (doc.exists) {
+                    userSettings = doc.data().settings || {};
+                    userDesktopItems = doc.data().desktopItems || getDefaultDesktopItems();
+                    userInstalledApps = new Set(doc.data().installedApps || []);
+                    
+                    // Aplicar configuración
+                    applyUserSettings();
+                    renderDesktop();
+                } else {
+                    // Crear documento para nuevo usuario
+                    initializeUserData();
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading user data:", error);
+                initializeUserData();
+            });
+        
+        // Escuchar cambios en tiempo real
+        userDataUnsubscribe = db.collection('users').doc(currentUser.uid)
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    userSettings = data.settings || {};
+                    userDesktopItems = data.desktopItems || getDefaultDesktopItems();
+                    userInstalledApps = new Set(data.installedApps || []);
+                    
+                    applyUserSettings();
+                    renderDesktop();
+                }
+            });
+    }
+
+    function initializeUserData() {
+        userSettings = {
+            theme: 'blue',
+            wallpaper: "url('https://images.unsplash.com/photo-1499002238440-d264edd596ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')",
+            iconSize: '50'
+        };
+        
+        userDesktopItems = getDefaultDesktopItems();
+        userInstalledApps = new Set(['app-browser']);
+        
+        saveUserData();
+        applyUserSettings();
+        renderDesktop();
+    }
+
+    function getDefaultDesktopItems() {
+        return [
+            {
+                id: 'app-browser',
+                type: 'app', 
+                name: 'Navegador Web', 
+                faIcon: 'fa-globe', 
+                url: 'https://www.google.com'
+            },
+            {
+                id: 'c-drive',
+                type: 'folder',
+                name: 'Disco Local (C:)',
+                faIcon: 'fa-hdd',
+                content: [
+                    { id: 'app-browser', type: 'app', name: 'Navegador Web', faIcon: 'fa-globe', url: 'https://www.google.com' },
+                    { id: 'folder-docs', type: 'folder', name: 'Documentos', faIcon: 'fa-file-alt', content: [] },
+                    { id: 'folder-pics', type: 'folder', name: 'Imágenes', faIcon: 'fa-image', content: [] },
+                    { id: 'folder-music', type: 'folder', name: 'Música', faIcon: 'fa-music', content: [] }
+                ]
+            }
+        ];
+    }
+
+    function applyUserSettings() {
+        // Aplicar tema
+        let primaryColor;
+        switch(userSettings.theme) {
+            case 'blue':
+                primaryColor = '#0078d7';
+                break;
+            case 'green':
+                primaryColor = '#107c10';
+                break;
+            case 'purple':
+                primaryColor = '#8661c5';
+                break;
+            case 'red':
+                primaryColor = '#e81123';
+                break;
+            default:
+                primaryColor = '#0078d7';
+        }
+        
+        document.documentElement.style.setProperty('--blue-accent', primaryColor);
+        document.documentElement.style.setProperty('--window-header', primaryColor);
+        
+        // Aplicar fondo de pantalla
+        if (userSettings.wallpaper) {
+            desktop.style.backgroundImage = userSettings.wallpaper;
+        }
+        
+        // Aplicar tamaño de iconos
+        if (userSettings.iconSize) {
+            document.documentElement.style.setProperty('--icon-size', `${userSettings.iconSize}px`);
+        }
+    }
+
+    function saveUserData() {
+        if (!currentUser) return;
+        
+        db.collection('users').doc(currentUser.uid).set({
+            settings: userSettings,
+            desktopItems: userDesktopItems,
+            installedApps: Array.from(userInstalledApps),
+            lastLogin: new Date()
+        }, { merge: true })
+        .catch((error) => {
+            console.error("Error saving user data:", error);
+        });
+    }
+
+    function saveUserSetting(key, value) {
+        userSettings[key] = value;
+        saveUserData();
+    }
+
+    // *** FUNCIONES DEL SISTEMA OPERATIVO ***
+    function updateDateTime() {
+        const now = new Date();
+        timeDisplay.textContent = now.toLocaleTimeString();
+        dateDisplay.textContent = now.toLocaleDateString('es-ES', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    }
+
+    // Iniciar la actualización de fecha y hora
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    function showAlert(message) {
+        document.getElementById('alert-message').textContent = message;
+        document.getElementById(MODAL_ALERT).style.display = 'flex';
+    }
+
+    function showConfirm(message, onConfirm, onCancel) {
+        document.getElementById('confirm-message').textContent = message;
+        const confirmModal = document.getElementById(MODAL_CONFIRM);
+        confirmModal.style.display = 'flex';
+
+        const okBtn = document.getElementById('confirm-ok-btn');
+        const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+        okBtn.onclick = () => { onConfirm(); closeModal(MODAL_CONFIRM); };
+        cancelBtn.onclick = () => { if(onCancel) onCancel(); closeModal(MODAL_CONFIRM); };
+    }
+
+    function showPrompt(title, onOk) {
+        document.getElementById('prompt-title').textContent = title;
+        const promptInput = document.getElementById('prompt-input');
+        promptInput.value = '';
+        const promptModal = document.getElementById(MODAL_PROMPT);
+        promptModal.style.display = 'flex';
+
+        document.getElementById('prompt-ok-btn').onclick = () => { onOk(promptInput.value); closeModal(MODAL_PROMPT); };
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function showProcess(message, onComplete) {
+        const processModal = document.createElement('div');
+        processModal.className = 'os-modal';
+        processModal.innerHTML = `
+            <div class="os-modal-content">
+                <h3>Proceso en curso...</h3>
+                <p id="process-message"></p>
+                <div style="background-color: #ddd; height: 10px; border-radius: 5px; margin-top: 10px;">
+                    <div id="process-bar" style="height: 100%; width: 0%; background-color: ${getComputedStyle(document.documentElement).getPropertyValue('--blue-accent')}; transition: width 0.5s ease;"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(processModal);
+        processModal.style.display = 'flex';
+
+        const processMessage = processModal.querySelector('#process-message');
+        const processBar = processModal.querySelector('#process-bar');
+
+        processMessage.textContent = 'Iniciando...';
+        processBar.style.width = '10%';
+
+        setTimeout(() => {
+            processMessage.textContent = message;
+            processBar.style.width = '50%';
+            setTimeout(() => {
+                processMessage.textContent = 'Completando...';
+                processBar.style.width = '100%';
+                setTimeout(() => {
+                    processModal.remove();
+                    onComplete();
+                }, 1000);
+            }, 1000);
+        }, 1000);
+    }
+
+    function setupWindowDrag(windowElement) {
+        let isDragging = false;
+        let offsetX, offsetY;
+        const header = windowElement.querySelector('.window-header');
+
+        header.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            offsetX = e.clientX - windowElement.offsetLeft;
+            offsetY = e.clientY - windowElement.offsetTop;
+            windowElement.style.cursor = 'grabbing';
+            windowElement.style.zIndex = ++highestZIndex;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            windowElement.style.left = `${e.clientX - offsetX}px`;
+            windowElement.style.top = `${e.clientY - offsetY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            windowElement.style.cursor = 'grab';
+        });
+    }
+
+    function setupWindowControls(windowElement, appData) {
+        const minimizeBtn = windowElement.querySelector('[data-action="minimize"]');
+        const maximizeBtn = windowElement.querySelector('[data-action="maximize"]');
+        const closeBtn = windowElement.querySelector('[data-action="close"]');
+        let isMaximized = true;
+
+        minimizeBtn.addEventListener('click', () => {
+            windowElement.style.display = 'none';
+            const taskbarApp = runningAppsContainer.querySelector(`.taskbar-app[data-id="${appData.id}"]`);
+            if (taskbarApp) {
+                taskbarApp.classList.remove('active');
+            }
+        });
+
+        maximizeBtn.addEventListener('click', () => {
+            if (!isMaximized) {
+                windowElement.dataset.originalWidth = windowElement.style.width;
+                windowElement.dataset.originalHeight = windowElement.style.height;
+                windowElement.dataset.originalTop = windowElement.style.top;
+                windowElement.dataset.originalLeft = windowElement.style.left;
+
+                windowElement.style.width = '100%';
+                windowElement.style.height = `calc(100% - ${getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height')})`;
+                windowElement.style.top = '0';
+                windowElement.style.left = '0';
+                windowElement.style.resize = 'none';
+                isMaximized = true;
+            } else {
+                windowElement.style.width = windowElement.dataset.originalWidth;
+                windowElement.style.height = windowElement.dataset.originalHeight;
+                windowElement.style.top = windowElement.dataset.originalTop;
+                windowElement.style.left = windowElement.dataset.originalLeft;
+                windowElement.style.resize = 'both';
+                isMaximized = false;
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            // Para ventanas de carpeta, no pedir confirmación
+            if (appData.type === 'folder') {
+                windowElement.remove();
+                const taskbarApp = runningAppsContainer.querySelector(`.taskbar-app[data-id="${appData.id}"]`);
+                if (taskbarApp) {
+                    taskbarApp.remove();
+                }
+            } else {
+                showConfirm(`¿Desea cerrar la aplicación '${appData.name}'?`, () => {
+                    windowElement.remove();
+                    const taskbarApp = runningAppsContainer.querySelector(`.taskbar-app[data-id="${appData.id}"]`);
+                    if (taskbarApp) {
+                        taskbarApp.remove();
+                    }
+                });
+            }
+        });
+    }
+
+    function renderIcon(item) {
+        const iconDiv = document.createElement('div');
+        iconDiv.className = `desktop-icon ${item.type === 'folder' ? 'folder-icon' : ''} ${item.isCut ? 'cut' : ''}`;
+        iconDiv.dataset.id = item.id;
+        iconDiv.dataset.type = item.type;
+        iconDiv.draggable = true;
+        iconDiv.innerHTML = `
+            ${item.faIcon ? `<i class="fas ${item.faIcon} icon-fa"></i>` : `<img src="${item.icon}" alt="${item.name}" class="icon-img">`}
+            <span>${item.name}</span>
+        `;
+
+        iconDiv.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideAllContextMenus();
+            selectedIconData = item;
+
+            if (item.type === 'folder') {
+                folderItemContextMenu.style.left = `${e.clientX}px`;
+                folderItemContextMenu.style.top = `${e.clientY}px`;
+                folderItemContextMenu.style.display = 'flex';
+            } else {
+                iconContextMenu.style.left = `${e.clientX}px`;
+                iconContextMenu.style.top = `${e.clientY}px`;
+                iconContextMenu.style.display = 'flex';
+
+                const isInstalledApp = userInstalledApps.has(item.id);
+                const isOnDesktop = userDesktopItems.some(i => i.id === item.id);
+                
+                document.getElementById('install-app-btn').style.display = item.type === 'app' && !isInstalledApp ? 'flex' : 'none';
+                document.getElementById('uninstall-app-btn').style.display = isInstalledApp ? 'flex' : 'none';
+                document.getElementById('remove-from-desktop-btn').style.display = isOnDesktop && item.type === 'app' && isInstalledApp ? 'flex' : 'none';
+            }
+        });
+
+        iconDiv.addEventListener('dblclick', () => {
+            if (item.type === 'app' && userInstalledApps.has(item.id)) {
+                openApp(item);
+            } else if (item.type === 'folder') {
+                openFolder(item);
+            } else if (item.type === 'app' && !userInstalledApps.has(item.id)) {
+                installApp(item);
+            } else if (item.type === 'file') {
+                openFile(item);
+            }
+        });
+
+        iconDiv.addEventListener('dragstart', (e) => {
+            clipboard = item;
+            clipboardAction = 'cut';
+            const icons = document.querySelectorAll('.desktop-icon');
+            icons.forEach(icon => {
+                if (icon.dataset.id === item.id) {
+                    icon.classList.add('cut');
+                }
+            });
+        });
+
+        iconDiv.addEventListener('dragend', () => {
+            const icons = document.querySelectorAll('.desktop-icon');
+            icons.forEach(icon => icon.classList.remove('cut'));
+        });
+
+        iconDiv.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('selected');
+        });
+        iconDiv.addEventListener('dragleave', (e) => {
+            e.currentTarget.classList.remove('selected');
+        });
+        iconDiv.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.remove('selected');
+            
+            if (!clipboard) return;
+            const targetId = e.currentTarget.dataset.id;
+            const targetItem = findItemById(targetId, userDesktopItems);
+            
+            if (targetItem && targetItem.type === 'folder') {
+                const itemToPaste = clipboard;
+                const destinationContent = targetItem.content;
+                const existingItem = destinationContent.find(i => i.name === itemToPaste.name);
+
+                const pasteAction = () => {
+                    if (clipboardAction === 'cut') {
+                        const originalParent = findParent(itemToPaste.id, userDesktopItems);
+                        if (originalParent) {
+                            findAndRemoveItem(itemToPaste.id, originalParent.content);
+                        } else {
+                            findAndRemoveItem(itemToPaste.id, userDesktopItems);
+                        }
+                        destinationContent.push(itemToPaste);
+                        itemToPaste.isCut = false;
+                        
+                        saveUserData();
+                        renderDesktop();
+                        updateOpenFolders();
+                        showAlert(`'${itemToPaste.name}' movido a '${targetItem.name}'.`);
+                        clipboard = null;
+                        clipboardAction = null;
+                    } else { // 'copy'
+                        const duplicatedItem = JSON.parse(JSON.stringify(itemToPaste));
+                        duplicatedItem.id = `${duplicatedItem.type}-${Date.now()}`;
+                        destinationContent.push(duplicatedItem);
+                        
+                        saveUserData();
+                        renderDesktop();
+                        updateOpenFolders();
+                        showAlert(`'${itemToPaste.name}' copiado a '${targetItem.name}'.`);
+                    }
+                };
+
+                if (existingItem) {
+                    showConfirm(`Ya existe un elemento llamado '${itemToPaste.name}'. ¿Desea reemplazarlo?`, () => {
+                        findAndRemoveItem(existingItem.id, destinationContent);
+                        pasteAction();
+                    });
+                } else {
+                    pasteAction();
+                }
+            }
+        });
+
+        return iconDiv;
+    }
+
+    // Función recursiva para encontrar un ítem
+    function findItemById(id, items) {
+        for (const item of items) {
+            if (item.id === id) {
+                return item;
+            }
+            if (item.content) {
+                const found = findItemById(id, item.content);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    // Función recursiva para encontrar y eliminar un ítem
+    function findAndRemoveItem(id, items) {
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].id === id) {
+                items.splice(i, 1);
+                return true;
+            }
+            if (items[i].content && items[i].type === 'folder') {
+                if (findAndRemoveItem(id, items[i].content)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function findParent(itemId, items) {
+        for (const item of items) {
+            if (item.content && item.type === 'folder') {
+                if (findItemById(itemId, item.content)) {
+                    return item;
+                }
+            }
+        }
+        return null;
+    }
+
+    function renderDesktop() {
+        desktop.innerHTML = '';
+        const desktopLevelItems = userDesktopItems.filter(item => !findParent(item.id, userDesktopItems));
+
+        desktopLevelItems.forEach(item => {
+            desktop.appendChild(renderIcon(item));
+        });
+    }
+
+    function updateOpenFolders() {
+        const openWindows = document.querySelectorAll('.app-window[data-type="folder"]');
+        openWindows.forEach(window => {
+            const folderId = window.dataset.id;
+            const folderData = findItemById(folderId, userDesktopItems);
+            if (folderData) {
+                const contentDiv = window.querySelector('.folder-content');
+                contentDiv.innerHTML = '';
+                folderData.content.forEach(item => {
+                    const itemIcon = renderIcon(item);
+                    contentDiv.appendChild(itemIcon);
+                });
+            } else {
+                window.remove();
+            }
+        });
+    }
+
+    function openApp(appData) {
+        // Verificar si la aplicación está instalada
+        if (!userInstalledApps.has(appData.id)) {
+            showAlert(`La aplicación '${appData.name}' no está instalada. ¿Desea instalarla?`, () => {
+                installApp(appData);
+            });
+            return;
+        }
+
+        const existingWindow = document.getElementById(`app-window-${appData.id}`);
+        if (existingWindow) {
+            existingWindow.style.display = 'flex';
+            existingWindow.style.zIndex = ++highestZIndex;
+            const taskbarApp = runningAppsContainer.querySelector(`.taskbar-app[data-id="${appData.id}"]`);
+            if (taskbarApp) {
+                const allTaskbarApps = document.querySelectorAll('.taskbar-app');
+                allTaskbarApps.forEach(app => app.classList.remove('active'));
+                taskbarApp.classList.add('active');
+            }
+            return;
+        }
+
+        const appWindow = document.createElement('div');
+        appWindow.className = 'app-window';
+        appWindow.id = `app-window-${appData.id}`;
+        appWindow.dataset.type = 'app';
+        appWindow.style.zIndex = ++highestZIndex;
+        appWindow.style.width = '800px';
+        appWindow.style.height = '600px';
+        appWindow.style.top = '50px';
+        appWindow.style.left = '50px';
+
+        // Contenido específico para cada tipo de aplicación
+        let windowContent = '';
+        
+        if (appData.id === 'app-browser') {
+            // Navegador web
+            windowContent = `
+                <div class="window-header">
+                    <div class="window-nav">
+                        <button class="back-btn" id="browser-back-btn"><i class="fas fa-arrow-left"></i></button>
+                        <button class="forward-btn" id="browser-forward-btn"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                    ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon fa-icon"></i>` : `<img src="${appData.icon}" alt="${appData.name}" class="icon">`}
+                    <span class="window-title">${appData.name}</span>
+                    <div class="window-controls">
+                        <button data-action="minimize"><i class="fas fa-minus"></i></button>
+                        <button data-action="maximize"><i class="far fa-square"></i></button>
+                        <button class="close-btn" data-action="close">&times;</button>
+                    </div>
+                </div>
+                <div class="browser-controls">
+                    <div class="browser-nav-buttons">
+                        <button id="browser-back-btn"><i class="fas fa-arrow-left"></i></button>
+                        <button id="browser-forward-btn"><i class="fas fa-arrow-right"></i></button>
+                        <button id="browser-refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="browser-address-bar">
+                        <input type="text" id="browser-url" placeholder="Ingresa una URL o término de búsqueda" value="https://www.google.com">
+                        <button id="browser-go-btn">Ir</button>
+                    </div>
+                </div>
+                <div class="window-content">
+                    <iframe src="https://www.google.com" id="browser-iframe"></iframe>
+                </div>
+            `;
+        } else {
+            // Aplicación genérica (iframe)
+            windowContent = `
+                <div class="window-header">
+                    <div class="window-nav">
+                        <button class="back-btn" id="back-btn-${appData.id}"><i class="fas fa-arrow-left"></i></button>
+                        <button class="forward-btn" id="forward-btn-${appData.id}"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                    ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon fa-icon"></i>` : `<img src="${appData.icon}" alt="${appData.name}" class="icon">`}
+                    <span class="window-title">${appData.name}</span>
+                    <div class="window-controls">
+                        <button data-action="minimize"><i class="fas fa-minus"></i></button>
+                        <button data-action="maximize"><i class="far fa-square"></i></button>
+                        <button class="close-btn" data-action="close">&times;</button>
+                    </div>
+                </div>
+                <div class="window-content">
+                    <iframe src="${appData.url || 'about:blank'}"></iframe>
+                </div>
+            `;
+        }
+
+        appWindow.innerHTML = windowContent;
+        document.body.appendChild(appWindow);
+        setupWindowDrag(appWindow);
+        setupWindowControls(appWindow, appData);
+
+        // Configuración específica para cada tipo de aplicación
+        if (appData.id === 'app-browser') {
+            setupBrowser(appWindow);
+        } else if (appData.url) {
+            // Configurar botones de navegación para aplicaciones genéricas
+            const backBtn = appWindow.querySelector(`#back-btn-${appData.id}`);
+            const forwardBtn = appWindow.querySelector(`#forward-btn-${appData.id}`);
+            const iframe = appWindow.querySelector('iframe');
+            
+            backBtn.addEventListener('click', () => {
+                try {
+                    iframe.contentWindow.history.back();
+                } catch (error) {
+                    showAlert('No se puede retroceder más en el historial');
+                }
+            });
+            
+            forwardBtn.addEventListener('click', () => {
+                try {
+                    iframe.contentWindow.history.forward();
+                } catch (error) {
+                    showAlert('No se puede avanzar más en el historial');
+                }
+            });
+            
+            // Actualizar estado de los botones según el historial
+            iframe.addEventListener('load', () => {
+                try {
+                    backBtn.disabled = !iframe.contentWindow.history.length || iframe.contentWindow.history.state?.backDisabled;
+                    forwardBtn.disabled = !iframe.contentWindow.history.forward || iframe.contentWindow.history.state?.forwardDisabled;
+                } catch (error) {
+                    // Error de CORS, no podemos acceder al historial
+                    backBtn.disabled = true;
+                    forwardBtn.disabled = true;
+                }
+            });
+        }
+
+        // Agregar a la barra de tareas
+        const taskbarApp = document.createElement('div');
+        taskbarApp.className = 'taskbar-app';
+        taskbarApp.dataset.id = appData.id;
+        taskbarApp.innerHTML = `
+            ${appData.faIcon ? `<i class="fas ${appData.faIcon} icon-fa"></i>` : `<img src="${appData.icon}" class="icon-img">`}
+            <span class="tooltip">${appData.name}</span>
+        `;
+        taskbarApp.addEventListener('click', () => {
+            if (appWindow.style.display === 'none') {
+                appWindow.style.display = 'flex';
+                appWindow.style.zIndex = ++highestZIndex;
+                taskbarApp.classList.add('active');
+            } else {
+                appWindow.style.display = 'none';
+                taskbarApp.classList.remove('active');
+            }
+        });
+        taskbarApp.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            taskbarAppContextMenu.style.left = `${e.clientX}px`;
+            taskbarAppContextMenu.style.top = `${e.clientY}px`;
+            taskbarAppContextMenu.style.display = 'flex';
+            document.getElementById('close-app-btn').onclick = () => {
+                closeModal('taskbar-app-context-menu');
+                appWindow.remove();
+                taskbarApp.remove();
+            };
+            document.getElementById('minimize-app-btn').onclick = () => {
+                closeModal('taskbar-app-context-menu');
+                appWindow.style.display = 'none';
+                taskbarApp.classList.remove('active');
+            };
+            document.getElementById('maximize-app-btn').onclick = () => {
+                closeModal('taskbar-app-context-menu');
+                if (appWindow.style.width === '100%') {
+                    appWindow.style.width = '800px';
+                    appWindow.style.height = '600px';
+                    appWindow.style.top = '50px';
+                    appWindow.style.left = '50px';
+                    appWindow.style.resize = 'both';
+                } else {
+                    appWindow.style.width = '100%';
+                    appWindow.style.height = `calc(100% - ${getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height')})`;
+                    appWindow.style.top = '0';
+                    appWindow.style.left = '0';
+                    appWindow.style.resize = 'none';
+                }
+            };
+        });
+        runningAppsContainer.appendChild(taskbarApp);
+        const allTaskbarApps = document.querySelectorAll('.taskbar-app');
+        allTaskbarApps.forEach(app => app.classList.remove('active'));
+        taskbarApp.classList.add('active');
+    }
+
+    function setupBrowser(appWindow) {
+        const browserIframe = appWindow.querySelector('#browser-iframe');
+        const browserUrlInput = appWindow.querySelector('#browser-url');
+        const browserGoBtn = appWindow.querySelector('#browser-go-btn');
+        const browserBackBtn = appWindow.querySelectorAll('#browser-back-btn');
+        const browserForwardBtn = appWindow.querySelectorAll('#browser-forward-btn');
+        const browserRefreshBtn = appWindow.querySelector('#browser-refresh-btn');
+
+        // Función para cargar una URL
+        function loadUrl(url) {
+            try {
+                // Si es una búsqueda de Google
+                if (!url.startsWith('http') && !url.startsWith('https') && !url.startsWith('file')) {
+                    if (url.includes('.') && !url.includes(' ')) {
+                        url = 'https://' + url;
+                    } else {
+                        url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+                    }
+                }
+                
+                // Asegurarse de que la URL tenga el protocolo
+                if (!url.startsWith('http') && !url.startsWith('https') && !url.startsWith('file')) {
+                    url = 'https://' + url;
+                }
+                
+                browserIframe.src = url;
+                browserUrlInput.value = url;
+            } catch (error) {
+                showAlert('Error al cargar la página: ' + error.message);
+            }
+        }
+
+        // Event listeners
+        browserGoBtn.addEventListener('click', () => {
+            loadUrl(browserUrlInput.value);
+        });
+
+        browserUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadUrl(browserUrlInput.value);
+            }
+        });
+
+        // Configurar ambos botones de retroceso
+        browserBackBtn.forEach(btn => {
+            btn.addEventListener('click', () => {
+                try {
+                    browserIframe.contentWindow.history.back();
+                } catch (error) {
+                    showAlert('No se puede retroceder más en el historial');
+                }
+            });
+        });
+
+        // Configurar ambos botones de avance
+        browserForwardBtn.forEach(btn => {
+            btn.addEventListener('click', () => {
+                try {
+                    browserIframe.contentWindow.history.forward();
+                } catch (error) {
+                    showAlert('No se puede avanzar más en el historial');
+                }
+            });
+        });
+
+        browserRefreshBtn.addEventListener('click', () => {
+            browserIframe.contentWindow.location.reload();
+        });
+
+        // Actualizar la URL cuando cambie el iframe
+        browserIframe.addEventListener('load', () => {
+            try {
+                browserUrlInput.value = browserIframe.contentWindow.location.href;
+            } catch (error) {
+                // Error de CORS, no podemos acceder a la URL
+                browserUrlInput.value = browserIframe.src;
+            }
+        });
+    }
+
+    function openFolder(folderData) {
+        const existingWindow = document.getElementById(`app-window-${folderData.id}`);
+        if (existingWindow) {
+            existingWindow.style.display = 'flex';
+            existingWindow.style.zIndex = ++highestZIndex;
+            return;
+        }
+        
+        if (!history[folderData.id]) {
+            history[folderData.id] = { stack: [], current: -1 };
+            history[folderData.id].stack.push(folderData);
+            history[folderData.id].current = 0;
+        }
+
+        const folderWindow = document.createElement('div');
+        folderWindow.className = 'app-window folder-window';
+        folderWindow.id = `app-window-${folderData.id}`;
+        folderWindow.dataset.type = 'folder';
+        folderWindow.dataset.id = folderData.id;
+        folderWindow.style.zIndex = ++highestZIndex;
+        folderWindow.style.width = '600px';
+        folderWindow.style.height = '400px';
+        folderWindow.style.top = `${Math.random() * 200 + 50}px`;
+        folderWindow.style.left = `${Math.random() * 300 + 50}px`;
+        folderWindow.innerHTML = `
+            <div class="window-header">
+                <div class="window-nav">
+                    <button class="back-btn" id="back-btn-${folderData.id}"><i class="fas fa-arrow-left"></i></button>
+                    <button class="forward-btn" id="forward-btn-${folderData.id}"><i class="fas fa-arrow-right"></i></button>
+                </div>
+                <i class="fas ${folderData.faIcon} icon fa-icon"></i>
+                <span class="window-title">${folderData.name}</span>
+                <div class="window-controls">
+                    <button data-action="minimize"><i class="fas fa-minus"></i></button>
+                    <button data-action="maximize"><i class="far fa-square"></i></button>
+                    <button class="close-btn" data-action="close">&times;</button>
+                </div>
+            </div>
+            <div class="folder-content">
+            </div>
+        `;
+        document.body.appendChild(folderWindow);
+        setupWindowDrag(folderWindow);
+        setupWindowControls(folderWindow, folderData);
+        folderWindow.style.display = 'flex';
+        
+        const contentDiv = folderWindow.querySelector('.folder-content');
+        folderData.content.forEach(item => {
+            const itemIcon = renderIcon(item);
+            contentDiv.appendChild(itemIcon);
+        });
+
+        // Configurar botones de navegación para carpetas
+        const backBtn = folderWindow.querySelector(`#back-btn-${folderData.id}`);
+        const forwardBtn = folderWindow.querySelector(`#forward-btn-${folderData.id}`);
+        
+        backBtn.addEventListener('click', () => {
+            if (history[folderData.id].current > 0) {
+                history[folderData.id].current--;
+                const prevFolder = history[folderData.id].stack[history[folderData.id].current];
+                updateFolderWindow(folderWindow, prevFolder);
+            }
+            updateNavButtons(folderData.id);
+        });
+        
+        forwardBtn.addEventListener('click', () => {
+            if (history[folderData.id].current < history[folderData.id].stack.length - 1) {
+                history[folderData.id].current++;
+                const nextFolder = history[folderData.id].stack[history[folderData.id].current];
+                updateFolderWindow(folderWindow, nextFolder);
+            }
+            updateNavButtons(folderData.id);
+        });
+        
+        // Actualizar estado inicial de los botones
+        updateNavButtons(folderData.id);
+
+        // Handle drag-and-drop inside the folder window
+        contentDiv.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            contentDiv.style.backgroundColor = '#e0e0e0';
+        });
+        contentDiv.addEventListener('dragleave', (e) => {
+            contentDiv.style.backgroundColor = 'white';
+        });
+        contentDiv.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            contentDiv.style.backgroundColor = 'white';
+
+            if (!clipboard) return;
+
+            const destinationContent = folderData.content;
+            const existingItem = destinationContent.find(i => i.name === clipboard.name);
+            const pasteAction = () => {
+                if (clipboardAction === 'cut') {
+                    const originalParent = findParent(clipboard.id, userDesktopItems);
+                    if (originalParent) {
+                        findAndRemoveItem(clipboard.id, originalParent.content);
+                    } else {
+                        findAndRemoveItem(clipboard.id, userDesktopItems);
+                    }
+                    const itemToPaste = clipboard;
+                    destinationContent.push(itemToPaste);
+                    itemToPaste.isCut = false;
+                    
+                    saveUserData();
+                    renderDesktop();
+                    updateFolderWindow(folderWindow, folderData);
+                    showAlert(`'${itemToPaste.name}' movido a '${folderData.name}'.`);
+                    clipboard = null;
+                    clipboardAction = null;
+                } else { // 'copy'
+                    const itemToPaste = JSON.parse(JSON.stringify(clipboard));
+                    itemToPaste.id = `${itemToPaste.type}-${Date.now()}`;
+                    destinationContent.push(itemToPaste);
+                    
+                    saveUserData();
+                    renderDesktop();
+                    updateFolderWindow(folderWindow, folderData);
+                    showAlert(`'${itemToPaste.name}' copiado a '${folderData.name}'.`);
+                }
+            };
+            
+            if (existingItem) {
+                showConfirm(`Ya existe un elemento llamado '${clipboard.name}'. ¿Desea reemplazarlo?`, () => {
+                    findAndRemoveItem(existingItem.id, destinationContent);
+                    pasteAction();
+                });
+            } else {
+                pasteAction();
+            }
+        });
+    }
+    
+    function updateNavButtons(folderId) {
+        const folderWindow = document.getElementById(`app-window-${folderId}`);
+        if (!folderWindow) return;
+        
+        const backBtn = folderWindow.querySelector(`#back-btn-${folderId}`);
+        const forwardBtn = folderWindow.querySelector(`#forward-btn-${folderId}`);
+        
+        if (backBtn && forwardBtn && history[folderId]) {
+            backBtn.disabled = history[folderId].current <= 0;
+            forwardBtn.disabled = history[folderId].current >= history[folderId].stack.length - 1;
+        }
+    }
+    
+    function updateFolderWindow(windowElement, folderData) {
+        const contentDiv = windowElement.querySelector('.folder-content');
+        contentDiv.innerHTML = '';
+        folderData.content.forEach(item => {
+            const itemIcon = renderIcon(item);
+            contentDiv.appendChild(itemIcon);
+        });
+        
+        // Actualizar título de la ventana
+        const titleElement = windowElement.querySelector('.window-title');
+        if (titleElement) {
+            titleElement.textContent = folderData.name;
+        }
+    }
+    
+    function hideAllContextMenus() {
+        desktopContextMenu.style.display = 'none';
+        iconContextMenu.style.display = 'none';
+        folderItemContextMenu.style.display = 'none';
+        newFolderMenu.style.display = 'none';
+        taskbarAppContextMenu.style.display = 'none';
+    }
+
+    function installApp(appData) {
+        showProcess(`Instalando ${appData.name}...`, () => {
+            const cDrive = userDesktopItems.find(item => item.id === 'c-drive');
+            if (cDrive) {
+                const appToInstall = findItemById(appData.id, cDrive.content);
+                if (appToInstall) {
+                    userInstalledApps.add(appData.id);
+                    
+                    // Añadir al escritorio automáticamente
+                    const desktopApp = JSON.parse(JSON.stringify(appToInstall));
+                    desktopApp.id = `app-${Date.now()}`;
+                    userDesktopItems.push(desktopApp);
+                    
+                    saveUserData();
+                    renderDesktop();
+                    showAlert(`App '${appData.name}' instalada. El ícono ha sido añadido al escritorio.`);
+                }
+            }
+        });
+    }
+
+    function uninstallApp(appId) {
+        showConfirm('¿Estás seguro que quieres desinstalar esta app?', () => {
+            findAndRemoveItem(appId, userDesktopItems);
+            userInstalledApps.delete(appId);
+            saveUserData();
+            renderDesktop();
+            showAlert('App desinstalada.');
+        });
+    }
+
+    function removeFromDesktop(appId) {
+        showConfirm('¿Quitar esta app del escritorio?', () => {
+            findAndRemoveItem(appId, userDesktopItems);
+            saveUserData();
+            renderDesktop();
+            showAlert('App quitada del escritorio.');
+        });
+    }
+
+    function openFile(fileData) {
+        if (fileData.name.endsWith('.txt')) {
+            // Abrir archivo de texto
+            showPrompt('Contenido del archivo:', (content) => {
+                // En una implementación real, guardaríamos el contenido
+                showAlert(`Archivo ${fileData.name} abierto. Contenido: ${content}`);
+            });
+        } else {
+            showAlert(`No se puede abrir el archivo ${fileData.name}`);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializar Firebase Auth
+        initAuth();
+        
+        // Configurar información del sistema
+        document.getElementById('browser-info').textContent = navigator.userAgent;
+        document.getElementById('screen-resolution').textContent = `${window.screen.width}x${window.screen.height}`;
+        
+        // Configurar información de almacenamiento
+        if (navigator.storage && navigator.storage.estimate) {
+            navigator.storage.estimate().then(estimate => {
+                const used = Math.round(estimate.usage / 1024 / 1024);
+                const quota = Math.round(estimate.quota / 1024 / 1024);
+                document.getElementById('storage-info').textContent = `${used} MB usados de ${quota} MB`;
+            });
+        } else {
+            document.getElementById('storage-info').textContent = 'No disponible';
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const clickedOnContextMenu = e.target.closest('.context-menu');
+        const clickedOnStartBtn = e.target.closest('#start-button');
+        const clickedOnTaskbarApp = e.target.closest('.taskbar-app');
+        const clickedOnDesktopIcon = e.target.closest('.desktop-icon');
+
+        if (!clickedOnContextMenu && !clickedOnTaskbarApp) {
+            hideAllContextMenus();
+        }
+        if (!clickedOnStartBtn) {
+            startMenu.style.display = 'none';
+        }
+        if (!clickedOnDesktopIcon) {
+            document.querySelectorAll('.desktop-icon.selected').forEach(icon => icon.classList.remove('selected'));
+        }
+    });
+
+    desktop.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        hideAllContextMenus();
+        desktopContextMenu.style.left = `${e.clientX}px`;
+        desktopContextMenu.style.top = `${e.clientY}px`;
+        desktopContextMenu.style.display = 'flex';
+
+        document.getElementById('paste-btn').style.display = clipboard ? 'flex' : 'none';
+    });
+
+    desktop.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        desktop.classList.add('selected');
+    });
+    desktop.addEventListener('dragleave', (e) => {
+        desktop.classList.remove('selected');
+    });
+    desktop.addEventListener('drop', (e) => {
+        e.preventDefault();
+        desktop.classList.remove('selected');
+        if (!clipboard) return;
+        
+        const existingItem = userDesktopItems.find(i => i.name === clipboard.name);
+        const pasteAction = () => {
+            let itemToPaste;
+            if (clipboardAction === 'copy') {
+                itemToPaste = JSON.parse(JSON.stringify(clipboard));
+                itemToPaste.id = `${itemToPaste.type}-${Date.now()}`;
+                userDesktopItems.push(itemToPaste);
+            } else { // 'cut'
+                itemToPaste = clipboard;
+                const originalParent = findParent(itemToPaste.id, userDesktopItems);
+                if (originalParent) {
+                    findAndRemoveItem(itemToPaste.id, originalParent.content);
+                } else {
+                    findAndRemoveItem(itemToPaste.id, userDesktopItems);
+                }
+                userDesktopItems.push(itemToPaste);
+                itemToPaste.isCut = false;
+            }
+
+            saveUserData();
+            renderDesktop();
+            updateOpenFolders();
+            showAlert(`'${itemToPaste.name}' ${clipboardAction === 'copy' ? 'copiado' : 'movido'} al Escritorio`);
+            if (clipboardAction === 'cut') {
+                clipboard = null;
+                clipboardAction = null;
+            }
+        };
+        
+        if (existingItem) {
+            showConfirm(`Ya existe un elemento llamado '${clipboard.name}'. ¿Desea reemplazarlo?`, () => {
+                findAndRemoveItem(existingItem.id, userDesktopItems);
+                pasteAction();
+            });
+        } else {
+            pasteAction();
+        }
+    });
+
+    document.getElementById('start-button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        startMenu.style.display = startMenu.style.display === 'flex' ? 'none' : 'flex';
+        hideAllContextMenus();
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+        renderDesktop();
+        hideAllContextMenus();
+    });
+
+    document.getElementById('personalize-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        document.getElementById('personalize-modal').style.display = 'flex';
+    });
+
+    document.getElementById('change-bg-btn').addEventListener('click', () => {
+        closeModal('personalize-modal');
+        document.getElementById('wallpaper-modal').style.display = 'flex';
+    });
+
+    document.getElementById('change-theme-btn').addEventListener('click', () => {
+        closeModal('personalize-modal');
+        document.getElementById('theme-modal').style.display = 'flex';
+    });
+
+    document.getElementById('change-icons-btn').addEventListener('click', () => {
+        closeModal('personalize-modal');
+        showPrompt('Tamaño de iconos (px):', (size) => {
+            if (size && !isNaN(size)) {
+                document.documentElement.style.setProperty('--icon-size', `${size}px`);
+                saveUserSetting('iconSize', size);
+                renderDesktop();
+                showAlert(`Tamaño de iconos cambiado a ${size}px`);
+            }
+        });
+    });
+
+    // Configurar opciones de tema
+    document.querySelectorAll('.theme-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const theme = option.dataset.theme;
+            saveUserSetting('theme', theme);
+            applyUserSettings();
+            showAlert(`Tema ${theme} aplicado`);
+        });
+    });
+
+    // Configurar opciones de fondo de pantalla
+    document.querySelectorAll('.wallpaper-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const wallpaper = option.dataset.wallpaper;
+            desktop.style.backgroundImage = wallpaper;
+            saveUserSetting('wallpaper', wallpaper);
+            showAlert('Fondo de pantalla cambiado');
+        });
+    });
+
+    document.getElementById('new-submenu').addEventListener('click', (e) => {
+        e.stopPropagation();
+        newFolderMenu.style.left = `${e.target.getBoundingClientRect().right}px`;
+        newFolderMenu.style.top = `${e.target.getBoundingClientRect().top}px`;
+        newFolderMenu.style.display = 'flex';
+    });
+
+    document.getElementById('create-folder-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        showPrompt('Nombre de la nueva carpeta:', (folderName) => {
+            if (!folderName) {
+                showAlert('El nombre no puede estar vacío.');
+                return;
+            }
+            const newFolder = {
+                id: `folder-${Date.now()}`,
+                type: 'folder',
+                name: folderName,
+                faIcon: 'fa-folder',
+                content: [],
+            };
+            userDesktopItems.push(newFolder);
+            saveUserData();
+            renderDesktop();
+        });
+    });
+
+    document.getElementById('create-text-file-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        showPrompt('Nombre del nuevo archivo de texto:', (fileName) => {
+            if (!fileName) {
+                showAlert('El nombre no puede estar vacío.');
+                return;
+            }
+            if (!fileName.endsWith('.txt')) {
+                fileName += '.txt';
+            }
+            const newFile = {
+                id: `file-${Date.now()}`,
+                type: 'file',
+                name: fileName,
+                faIcon: 'fa-file-alt',
+                content: '',
+            };
+            userDesktopItems.push(newFile);
+            saveUserData();
+            renderDesktop();
+        });
+    });
+
+    document.getElementById('import-app-btn').addEventListener('click', async () => {
+        startMenu.style.display = 'none';
+        try {
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [{ description: 'RT App', accept: { 'application/json': ['.rt'] } }],
+                multiple: false
+            });
+            const file = await fileHandle.getFile();
+            const content = await file.text();
+            const appData = JSON.parse(content);
+            
+            const cDrive = userDesktopItems.find(item => item.id === 'c-drive');
+            if (cDrive) {
+                const newApp = { ...appData, id: `app-${Date.now()}`, type: 'app' };
+                cDrive.content.push(newApp);
+                saveUserData();
+                
+                // Añadir automáticamente al escritorio
+                userDesktopItems.push({...newApp});
+                saveUserData();
+                userInstalledApps.add(newApp.id);
+                
+                renderDesktop();
+                showAlert(`App '${appData.name}' importada e instalada automáticamente.`);
+            } else {
+                showAlert('Error: No se encontró el Disco C para la importación.');
+            }
+        } catch (error) {
+            showAlert('Importación cancelada o fallida.');
+            console.error('Error al importar:', error);
+        }
+    });
+
+    document.getElementById('config-btn').addEventListener('click', () => {
+        startMenu.style.display = 'none';
+        document.getElementById('settings-modal').style.display = 'flex';
+    });
+
+    document.getElementById('panel-control-btn').addEventListener('click', () => {
+        closeModal('settings-modal');
+        const installedAppsList = document.getElementById('installed-apps-list');
+        installedAppsList.innerHTML = '';
+
+        const installedAppsArray = Array.from(userInstalledApps).map(id => findItemById(id, userDesktopItems)).filter(Boolean);
+
+        if (installedAppsArray.length > 0) {
+            installedAppsList.innerHTML = '<h4 style="margin-bottom: 15px;">Aplicaciones Instaladas:</h4>';
+            installedAppsArray.forEach(app => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'option-item';
+                itemDiv.style.display = 'flex';
+                itemDiv.style.alignItems = 'center';
+                itemDiv.style.padding = '10px';
+                itemDiv.style.marginBottom = '10px';
+                itemDiv.style.border = '1px solid #ddd';
+                itemDiv.style.borderRadius = '5px';
+                itemDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; flex-grow: 1;">
+                        ${app.faIcon ? `<i class="fas ${app.faIcon}" style="font-size: 24px; margin-right: 10px;"></i>` : `<img src="${app.icon}" style="width: 32px; height: 32px; object-fit: contain; margin-right: 10px;">`}
+                        <span>${app.name}</span>
+                    </div>
+                    <button style="margin-left: 10px; padding: 5px 10px; background-color: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer;" onclick="uninstallApp('${app.id}')">
+                        <i class="fas fa-trash-alt"></i> Desinstalar
+                    </button>
+                `;
+                installedAppsList.appendChild(itemDiv);
+            });
+        } else {
+            installedAppsList.innerHTML = '<p>No hay apps instaladas.</p>';
+        }
+        document.getElementById('control-panel-modal').style.display = 'flex';
+    });
+
+    document.getElementById('system-info-btn').addEventListener('click', () => {
+        closeModal('settings-modal');
+        document.getElementById('system-info-modal').style.display = 'flex';
+    });
+
+    // Configurar los botones del panel de control
+    document.getElementById('apps-management-btn').addEventListener('click', () => {
+        showAlert('Gestión de aplicaciones en desarrollo');
+    });
+
+    document.getElementById('privacy-settings-btn').addEventListener('click', () => {
+        showAlert('Configuración de privacidad en desarrollo');
+    });
+
+    document.getElementById('update-btn').addEventListener('click', () => {
+        showAlert('Sistema actualizado. No hay actualizaciones disponibles.');
+    });
+
+    document.getElementById('backup-btn').addEventListener('click', () => {
+        showAlert('Copia de seguridad en desarrollo');
+    });
+
+    document.getElementById('accessibility-btn').addEventListener('click', () => {
+        showAlert('Opciones de accesibilidad en desarrollo');
+    });
+
+    document.getElementById('network-btn').addEventListener('click', () => {
+        showAlert('Configuración de red en desarrollo');
+    });
+    
+    document.getElementById('shutdown-btn').addEventListener('click', () => {
+        showConfirm('¿Estás seguro que quieres apagar el sistema?', () => {
+            document.body.innerHTML = '';
+            document.getElementById('shutdown-screen').style.display = 'flex';
+            setTimeout(() => {
+                document.body.innerHTML = `<div style="text-align: center; color: white; margin-top: 100px;"><h1>Apagado...</h1></div>`;
+            }, 2000);
+        });
+    });
+
+    // --- Funciones del menú contextual de íconos ---
+
+    document.getElementById('open-icon-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        if (selectedIconData.type === 'app' && userInstalledApps.has(selectedIconData.id)) {
+            openApp(selectedIconData);
+        } else if (selectedIconData.type === 'folder') {
+            openFolder(selectedIconData);
+        } else if (selectedIconData.type === 'file') {
+            openFile(selectedIconData);
+        }
+    });
+
+    document.getElementById('cut-icon-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        clipboard = selectedIconData;
+        clipboardAction = 'cut';
+        selectedIconData.isCut = true;
+        showAlert(`'${selectedIconData.name}' cortado.`);
+        renderDesktop();
+        updateOpenFolders();
+    });
+
+    document.getElementById('copy-icon-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        clipboard = selectedIconData;
+        clipboardAction = 'copy';
+        showAlert(`'${selectedIconData.name}' copiado.`);
+    });
+
+    document.getElementById('duplicate-icon-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        const newId = `${selectedIconData.type}-${Date.now()}`;
+        const newName = `${selectedIconData.name} - Copia`;
+        const duplicatedItem = JSON.parse(JSON.stringify(selectedIconData));
+        duplicatedItem.id = newId;
+        duplicatedItem.name = newName;
+        
+        userDesktopItems.push(duplicatedItem);
+        saveUserData();
+        renderDesktop();
+        showAlert(`'${selectedIconData.name}' duplicado.`);
+    });
+
+    document.getElementById('paste-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!clipboard) return;
+
+        const existingItem = userDesktopItems.find(i => i.name === clipboard.name);
+        const pasteAction = () => {
+            let itemToPaste;
+            if (clipboardAction === 'copy') {
+                itemToPaste = JSON.parse(JSON.stringify(clipboard));
+                itemToPaste.id = `${itemToPaste.type}-${Date.now()}`;
+                userDesktopItems.push(itemToPaste);
+            } else { // 'cut'
+                itemToPaste = clipboard;
+                findAndRemoveItem(itemToPaste.id, userDesktopItems);
+                userDesktopItems.push(itemToPaste);
+                itemToPaste.isCut = false;
+            }
+
+            saveUserData();
+            renderDesktop();
+            showAlert(`'${itemToPaste.name}' ${clipboardAction === 'copy' ? 'copiado' : 'movido'} al Escritorio.`);
+            if (clipboardAction === 'cut') {
+                clipboard = null;
+                clipboardAction = null;
+            }
+        };
+        
+        if (existingItem) {
+            showConfirm(`Ya existe un elemento llamado '${clipboard.name}'. ¿Desea reemplazarlo?`, () => {
+                findAndRemoveItem(existingItem.id, userDesktopItems);
+                pasteAction();
+            });
+        } else {
+            pasteAction();
+        }
+    });
+
+    document.getElementById('rename-icon-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        showPrompt('Renombrar', (newName) => {
+            if (newName) {
+                const itemToRename = findItemById(selectedIconData.id, userDesktopItems);
+                if (itemToRename) {
+                    itemToRename.name = newName;
+                    saveUserData();
+                    renderDesktop();
+                    showAlert('Elemento renombrado.');
+                }
+            }
+        });
+    });
+
+    document.getElementById('delete-icon-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        showConfirm(`¿Estás seguro que quieres eliminar '${selectedIconData.name}'?`, () => {
+            findAndRemoveItem(selectedIconData.id, userDesktopItems);
+            saveUserData();
+            renderDesktop();
+            showAlert('Elemento eliminado.');
+        });
+    });
+
+    document.getElementById('install-app-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        installApp(selectedIconData);
+    });
+
+    document.getElementById('uninstall-app-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        uninstallApp(selectedIconData.id);
+    });
+
+    document.getElementById('remove-from-desktop-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        removeFromDesktop(selectedIconData.id);
+    });
+
+    // --- Funciones del menú contextual de carpetas (dentro de ventanas) ---
+    function setupFolderItemContextMenu() {
+        document.querySelectorAll('.app-window[data-type="folder"] .desktop-icon').forEach(icon => {
+            icon.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                hideAllContextMenus();
+                const itemId = e.currentTarget.dataset.id;
+                const folderWindow = e.currentTarget.closest('.app-window');
+                const folderId = folderWindow.dataset.id;
+                const folderData = findItemById(folderId, userDesktopItems);
+                selectedIconData = findItemById(itemId, folderData.content);
+
+                folderItemContextMenu.style.left = `${e.clientX}px`;
+                folderItemContextMenu.style.top = `${e.clientY}px`;
+                folderItemContextMenu.style.display = 'flex';
+            });
+        });
+    }
+    
+    setupFolderItemContextMenu();
+
+    document.getElementById('open-folder-item-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        if (selectedIconData.type === 'folder') {
+            openFolder(selectedIconData);
+        } else if (selectedIconData.type === 'app' && userInstalledApps.has(selectedIconData.id)) {
+            openApp(selectedIconData);
+        } else if (selectedIconData.type === 'file') {
+            openFile(selectedIconData);
+        }
+    });
+    
+    document.getElementById('cut-folder-item-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        clipboard = selectedIconData;
+        clipboardAction = 'cut';
+        selectedIconData.isCut = true;
+        showAlert(`'${selectedIconData.name}' cortado.`);
+        updateOpenFolders();
+    });
+    
+    document.getElementById('copy-folder-item-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        clipboard = selectedIconData;
+        clipboardAction = 'copy';
+        showAlert(`'${selectedIconData.name}' copiado.`);
+    });
+
+    document.getElementById('duplicate-folder-item-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        const newId = `${selectedIconData.type}-${Date.now()}`;
+        const newName = `${selectedIconData.name} - Copia`;
+        const duplicatedItem = JSON.parse(JSON.stringify(selectedIconData));
+        duplicatedItem.id = newId;
+        duplicatedItem.name = newName;
+        
+        const folderWindow = document.getElementById(`app-window-${selectedIconData.id}`).closest('.app-window');
+        const folderData = findItemById(folderWindow.dataset.id, userDesktopItems);
+        folderData.content.push(duplicatedItem);
+        
+        saveUserData();
+        updateOpenFolders();
+        showAlert(`'${selectedIconData.name}' duplicado.`);
+    });
+    
+    document.getElementById('rename-folder-item-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        showPrompt('Renombrar', (newName) => {
+            if (newName) {
+                const itemToRename = findItemById(selectedIconData.id, userDesktopItems);
+                if (itemToRename) {
+                    itemToRename.name = newName;
+                    saveUserData();
+                    updateOpenFolders();
+                    showAlert('Elemento renombrado.');
+                }
+            }
+        });
+    });
+    
+    document.getElementById('delete-folder-item-btn').addEventListener('click', () => {
+        hideAllContextMenus();
+        if (!selectedIconData) return;
+        showConfirm(`¿Estás seguro que quieres eliminar '${selectedIconData.name}'?`, () => {
+            findAndRemoveItem(selectedIconData.id, userDesktopItems);
+            saveUserData();
+            updateOpenFolders();
+            showAlert('Elemento eliminado.');
+        });
+    });
+</script>
