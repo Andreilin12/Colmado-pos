@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Turnos - Peluquero</title>
+    <style>
+        :root {
+            --primary-color: #15a086;
+            --secondary-color: #2ecc71;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .user-info {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .logout-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+        
+        .turns-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .turn-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .turn-item.waiting {
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .turn-item.in-progress {
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .turn-item.completed {
+            border-left: 4px solid var(--primary-color);
+            opacity: 0.7;
+        }
+        
+        .turn-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .turn-details {
+            margin-bottom: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #7f8c8d;
+        }
+        
+        .detail-value {
+            font-weight: 500;
+        }
+        
+        .turn-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        .btn-waiting {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-waiting:hover {
+            background-color: #e67e22;
+        }
+        
+        .btn-ready {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-ready:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-completed {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-completed:hover {
+            background-color: #12806b;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 15px;
+            border: 1px solid var(--primary-color);
+            border-radius: 20px;
+            background-color: white;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .filter-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .current-date {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+        }
+        
+        .no-turns {
+            text-align: center;
+            padding: 30px;
+            color: #95a5a6;
+            font-style: italic;
+            grid-column: 1 / -1;
+        }
+        
+        .admin-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .admin-link:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .turns-container {
+                grid-template-columns: 1fr;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Peluquería Estilo Perfecto - Panel de Control</h1>
+                <div class="user-info" id="userInfo">
+                    Cargando información...
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+        </header>
+        
+        <div class="current-date" id="currentDate"></div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Todos</button>
+            <button class="filter-btn" data-filter="waiting">En espera</button>
+            <button class="filter-btn" data-filter="in-progress">En progreso</button>
+            <button class="filter-btn" data-filter="completed">Completados</button>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">Turnos de Hoy</h2>
+            
+            <div class="turns-container" id="turnsContainer">
+                <div class="no-turns">
+                    <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Cargando turnos...</p>
+                </div>
+            </div>
+            
+            <a href="admin-users.html" class="admin-link">
+                <i class="fas fa-users-cog"></i> Administrar usuarios y peluqueros
+            </a>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLi-egzQlgbKW8XV_qIhU6313Gd8gocCg",
+            authDomain: "inventario-35d6b.firebaseapp.com",
+            databaseURL: "https://inventario-35d6b-default-rtdb.firebaseio.com",
+            projectId: "inventario-35d6b",
+            storageBucket: "inventario-35d6b.appspot.com",
+            messagingSenderId: "266100399659",
+            appId: "1:266100399659:web:92358d28cbd803c8a7d46e"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        
+        // Variables globales
+        let currentUser = null;
+        let currentFilter = 'all';
+        let turnsListener = null;
+        let currentBarberId = null;
+        
+        // Referencias a elementos del DOM
+        const userInfoElement = document.getElementById('userInfo');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const currentDateElement = document.getElementById('currentDate');
+        const turnsContainer = document.getElementById('turnsContainer');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        
+        // Inicializar la aplicación
+        function initApp() {
+            // Verificar estado de autenticación
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    userInfoElement.textContent = `Conectado como: ${user.displayName || user.email}`;
+                    
+                    // Verificar si el usuario actual es peluquero
+                    await checkIfBarber(user.uid);
+                    
+                    // Si es peluquero, cargar los turnos
+                    if (currentBarberId === user.uid) {
+                        setupFilters();
+                        loadTurns();
+                    } else {
+                        turnsContainer.innerHTML = `
+                            <div class="no-turns">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                                <p>No tienes permisos para ver los turnos. Solo los peluqueros asignados pueden acceder a esta información.</p>
+                                <p>Contacta con un administrador para que te asigne como peluquero.</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Redirigir a login si no está autenticado
+                    window.location.href = "login.html";
+                }
+            });
+            
+            // Configurar evento para cerrar sesión
+            logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.href = "login.html";
+                });
+            });
+            
+            // Mostrar fecha actual
+            const today = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDateElement.textContent = today.toLocaleDateString('es-ES', options);
+        }
+        
+        // Verificar si el usuario actual es peluquero
+        async function checkIfBarber(userId) {
+            try {
+                const barberDoc = await db.collection('barbers').doc(userId).get();
+                if (barberDoc.exists) {
+                    currentBarberId = userId;
+                    return true;
+                }
+                
+                // Si no está en la colección de barbers, verificar si tiene el claim personalizado
+                // Esta parte requiere Firebase Admin SDK en el backend, así que usamos solo la colección
+                return false;
+            } catch (error) {
+                console.error("Error al verificar rol de peluquero:", error);
+                return false;
+            }
+        }
+        
+        // Configurar filtros
+        function setupFilters() {
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Quitar clase active de todos los botones
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Añadir clase active al botón clickeado
+                    button.classList.add('active');
+                    
+                    // Actualizar filtro actual
+                    currentFilter = button.dataset.filter;
+                    
+                    // Recargar turnos con el nuevo filtro
+                    loadTurns();
+                });
+            });
+        }
+        
+        // Cargar turnos
+        function loadTurns() {
+            // Detener listener anterior si existe
+            if (turnsListener) {
+                turnsListener();
+            }
+            
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            
+            // Obtener todos los turnos del día
+            let query = db.collection('turns')
+                .where('date', '==', todayString);
+            
+            turnsListener = query.onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    turnsContainer.innerHTML = `
+                        <div class="no-turns">
+                            <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <p>No hay turnos para hoy.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                turnsContainer.innerHTML = '';
+                
+                // Filtrar localmente según el filtro seleccionado
+                snapshot.forEach((doc) => {
+                    const turn = { id: doc.id, ...doc.data() };
+                    
+                    // Aplicar filtro localmente
+                    if (currentFilter === 'all' || turn.status === currentFilter) {
+                        const turnElement = createTurnElement(turn);
+                        turnsContainer.appendChild(turnElement);
+                    }
+                });
+                
+                // Si no hay turnos después de aplicar el filtro
+                if (turnsContainer.children.length === 0) {
+                    turnsContainer.innerHTML = `
+                        <div class="no-turns">
+                            <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <p>No hay turnos ${currentFilter !== 'all' ? `en estado "${currentFilter}"` : 'para hoy'}.</p>
+                        </div>
+                    `;
+                }
+            }, (error) => {
+                console.error("Error al cargar turnos:", error);
+                turnsContainer.innerHTML = `
+                    <div class="no-turns">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Error al cargar los turnos. Intenta recargar la página.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        // Crear elemento HTML para un turno
+        function createTurnElement(turn) {
+            const turnElement = document.createElement('div');
+            turnElement.className = `turn-item ${turn.status}`;
+            
+            // Formatear hora
+            const timeParts = turn.time.split(':');
+            const formattedTime = `${timeParts[0]}:${timeParts[1]}`;
+            
+            let actionsHTML = '';
+            
+            switch (turn.status) {
+                case 'waiting':
+                    actionsHTML = `
+                        <button class="btn btn-ready" onclick="updateTurnStatus('${turn.id}', 'in-progress')">
+                            <i class="fas fa-user-check"></i> Llamar Cliente
+                        </button>
+                    `;
+                    break;
+                case 'in-progress':
+                    actionsHTML = `
+                        <button class="btn btn-completed" onclick="updateTurnStatus('${turn.id}', 'completed')">
+                            <i class="fas fa-check-circle"></i> Marcar como Completado
+                        </button>
+                    `;
+                    break;
+                case 'completed':
+                    actionsHTML = `
+                        <button class="btn btn-waiting" onclick="updateTurnStatus('${turn.id}', 'waiting')">
+                            <i class="fas fa-undo"></i> Reabrir Turno
+                        </button>
+                    `;
+                    break;
+            }
+            
+            turnElement.innerHTML = `
+                <div class="turn-number">Turno #${turn.number}</div>
+                
+                <div class="turn-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Cliente:</span>
+                        <span class="detail-value">${turn.clientName}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Hora:</span>
+                        <span class="detail-value">${formattedTime}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Estado:</span>
+                        <span class="detail-value">${getStatusText(turn.status)}</span>
+                    </div>
+                </div>
+                
+                <div class="turn-actions">
+                    ${actionsHTML}
+                </div>
+            `;
+            
+            return turnElement;
+        }
+        
+        // Obtener texto descriptivo para el estado
+        function getStatusText(status) {
+            switch (status) {
+                case 'waiting': return 'En espera';
+                case 'in-progress': return 'Siendo atendido';
+                case 'completed': return 'Completado';
+                default: return status;
+            }
+        }
+        
+        // Actualizar estado de un turno
+        async function updateTurnStatus(turnId, newStatus) {
+            try {
+                await db.collection('turns').doc(turnId).update({
+                    status: newStatus,
+                    barberId: currentBarberId,
+                    barberName: currentUser.displayName || currentUser.email,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log(`Turno ${turnId} actualizado a ${newStatus}`);
+            } catch (error) {
+                console.error("Error al actualizar turno:", error);
+                alert("Error al actualizar el turno. Intenta nuevamente.");
+            }
+        }
+        
+        // Iniciar la aplicación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
