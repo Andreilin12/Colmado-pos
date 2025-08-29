@@ -136,6 +136,7 @@
         .turn-actions {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         
         .btn {
@@ -177,6 +178,15 @@
         
         .btn-completed:hover {
             background-color: #12806b;
+        }
+        
+        .btn-reset {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-reset:hover {
+            background-color: #c0392b;
         }
         
         .filters {
@@ -233,6 +243,12 @@
             text-decoration: underline;
         }
         
+        .reset-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
         @media (max-width: 768px) {
             .turns-container {
                 grid-template-columns: 1fr;
@@ -242,6 +258,10 @@
                 flex-direction: column;
                 gap: 10px;
                 text-align: center;
+            }
+            
+            .turn-actions {
+                flex-direction: column;
             }
         }
     </style>
@@ -277,6 +297,16 @@
                     <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 10px;"></i>
                     <p>Cargando turnos...</p>
                 </div>
+            </div>
+            
+            <div class="reset-section">
+                <h3>Gestión de Turnos</h3>
+                <button class="btn btn-reset" id="resetTurnsBtn">
+                    <i class="fas fa-sync-alt"></i> Restablecer Todos los Turnos
+                </button>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #7f8c8d;">
+                    Esta acción eliminará todos los turnos del día actual y los pondrá disponibles nuevamente.
+                </p>
             </div>
             
             <a href="admin-users.html" class="admin-link">
@@ -319,6 +349,7 @@
         const currentDateElement = document.getElementById('currentDate');
         const turnsContainer = document.getElementById('turnsContainer');
         const filterButtons = document.querySelectorAll('.filter-btn');
+        const resetTurnsBtn = document.getElementById('resetTurnsBtn');
         
         // Inicializar la aplicación
         function initApp() {
@@ -356,6 +387,9 @@
                     window.location.href = "login.html";
                 });
             });
+            
+            // Configurar evento para restablecer turnos
+            resetTurnsBtn.addEventListener('click', resetAllTurns);
             
             // Mostrar fecha actual
             const today = new Date();
@@ -493,6 +527,13 @@
                     break;
             }
             
+            // Añadir botón para eliminar turno individual
+            actionsHTML += `
+                <button class="btn btn-reset" onclick="deleteTurn('${turn.id}', ${turn.number})">
+                    <i class="fas fa-times"></i> Eliminar
+                </button>
+            `;
+            
             turnElement.innerHTML = `
                 <div class="turn-number">Turno #${turn.number}</div>
                 
@@ -543,6 +584,53 @@
             } catch (error) {
                 console.error("Error al actualizar turno:", error);
                 alert("Error al actualizar el turno. Intenta nuevamente.");
+            }
+        }
+        
+        // Eliminar un turno individual
+        async function deleteTurn(turnId, turnNumber) {
+            if (!confirm(`¿Estás seguro de que deseas eliminar el turno #${turnNumber}?`)) {
+                return;
+            }
+            
+            try {
+                await db.collection('turns').doc(turnId).delete();
+                console.log(`Turno ${turnId} eliminado`);
+                alert(`Turno #${turnNumber} eliminado correctamente.`);
+            } catch (error) {
+                console.error("Error al eliminar turno:", error);
+                alert("Error al eliminar el turno. Intenta nuevamente.");
+            }
+        }
+        
+        // Restablecer todos los turnos del día
+        async function resetAllTurns() {
+            if (!confirm("¿Estás seguro de que deseas restablecer todos los turnos del día? Esta acción no se puede deshacer.")) {
+                return;
+            }
+            
+            try {
+                const today = new Date();
+                const todayString = today.toISOString().split('T')[0];
+                
+                // Obtener todos los turnos del día
+                const snapshot = await db.collection('turns')
+                    .where('date', '==', todayString)
+                    .get();
+                
+                // Eliminar todos los turnos
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                
+                alert("Todos los turnos del día han sido restablecidos correctamente.");
+                loadTurns(); // Recargar la lista de turnos
+            } catch (error) {
+                console.error("Error al restablecer turnos:", error);
+                alert("Error al restablecer los turnos. Intenta nuevamente.");
             }
         }
         
