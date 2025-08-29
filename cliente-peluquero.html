@@ -253,6 +253,22 @@
             color: #7f8c8d;
         }
         
+        .notification-permission {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid #2980b9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .permission-text {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
         @media (max-width: 600px) {
             .number-grid {
                 grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
@@ -269,6 +285,16 @@
                 right: 20px;
                 max-width: none;
             }
+            
+            .notification-permission {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .permission-text {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
@@ -280,6 +306,15 @@
                 Cargando información...
             </div>
         </header>
+        
+        <div class="notification-permission" id="notificationPermission" style="display: none;">
+            <div class="permission-text">
+                Para recibir notificaciones cuando sea tu turno, por favor habilita los permisos de notificación.
+            </div>
+            <button class="btn" id="enableNotificationsBtn">
+                <i class="fas fa-bell"></i> Habilitar Notificaciones
+            </button>
+        </div>
         
         <div class="alert" id="alertBox"></div>
         
@@ -379,6 +414,8 @@
         const notificationTitle = document.getElementById('notificationTitle');
         const notificationMessage = document.getElementById('notificationMessage');
         const closeNotification = document.getElementById('closeNotification');
+        const notificationPermission = document.getElementById('notificationPermission');
+        const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
         
         // Inicializar la aplicación
         function initApp() {
@@ -389,6 +426,9 @@
                     userInfoElement.textContent = `Bienvenido: ${user.displayName || user.email}`;
                     loadAvailableTurns();
                     checkUserExistingTurn();
+                    
+                    // Verificar permisos de notificación
+                    checkNotificationPermission();
                 } else {
                     // Redirigir a login si no está autenticado
                     window.location.href = "login.html";
@@ -401,9 +441,74 @@
             // Configurar evento para cerrar notificación
             closeNotification.addEventListener('click', hideNotification);
             
-            // Solicitar permiso para notificaciones
-            if ('Notification' in window) {
-                Notification.requestPermission();
+            // Configurar evento para habilitar notificaciones
+            enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
+        }
+        
+        // Verificar permisos de notificación
+        function checkNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.log('Este navegador no soporta notificaciones');
+                return;
+            }
+            
+            if (Notification.permission === 'default') {
+                notificationPermission.style.display = 'flex';
+            } else if (Notification.permission === 'denied') {
+                showAlert("Has bloqueado las notificaciones. Para recibir alertas de tu turno, por favor habilita los permisos en la configuración de tu navegador.", "info", 10000);
+            }
+        }
+        
+        // Solicitar permiso para notificaciones
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                showAlert("Tu navegador no soporta notificaciones", "error");
+                return;
+            }
+            
+            Notification.requestPermission().then(function(permission) {
+                if (permission === 'granted') {
+                    showAlert("Notificaciones habilitadas correctamente", "success");
+                    notificationPermission.style.display = 'none';
+                    
+                    // Mostrar notificación de prueba
+                    showSystemNotification("Notificaciones activadas", "Ahora recibirás alertas cuando sea tu turno.");
+                } else if (permission === 'denied') {
+                    showAlert("Has bloqueado las notificaciones. Puedes habilitarlas más tarde en la configuración de tu navegador.", "error");
+                    notificationPermission.style.display = 'none';
+                }
+            });
+        }
+        
+        // Mostrar notificación del sistema
+        function showSystemNotification(title, message) {
+            if (!('Notification' in window)) {
+                console.log('Este navegador no soporta notificaciones del sistema');
+                return;
+            }
+            
+            if (Notification.permission === 'granted') {
+                const iconUrl = 'https://cdn-icons-png.flaticon.com/512/3468/3468373.png';
+                
+                const notification = new Notification(title, {
+                    body: message,
+                    icon: iconUrl,
+                    requireInteraction: true
+                });
+                
+                // Cerrar la notificación después de 10 segundos
+                setTimeout(() => {
+                    notification.close();
+                }, 10000);
+                
+                // Acción al hacer clic en la notificación
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+            } else if (Notification.permission === 'default') {
+                // Si no se han solicitado permisos aún, mostrar el banner
+                notificationPermission.style.display = 'flex';
             }
         }
         
@@ -631,15 +736,13 @@
                         
                         // Mostrar notificación si el estado cambia a "in-progress"
                         if (userTurn.status === 'in-progress' && oldStatus !== 'in-progress') {
-                            showNotification("¡Es tu turno!", "Por favor, acércate al mostrador. Turno #" + userTurn.number);
+                            const message = "Por favor, acércate al mostrador. Turno #" + userTurn.number;
                             
-                            // También mostrar notificación del sistema si está permitido
-                            if ('Notification' in window && Notification.permission === 'granted') {
-                                new Notification("¡Es tu turno!", {
-                                    body: "Por favor, acércate al mostrador. Turno #" + userTurn.number,
-                                    icon: "https://example.com/icon.png" // Reemplaza con tu icono
-                                });
-                            }
+                            // Mostrar notificación en la aplicación
+                            showNotification("¡Es tu turno!", message);
+                            
+                            // Mostrar notificación del sistema
+                            showSystemNotification("¡Es tu turno!", message);
                             
                             // Reproducir sonido de notificación
                             try {
@@ -652,7 +755,13 @@
                         
                         // Si el turno fue completado, permitir tomar otro turno
                         if (userTurn.status === 'completed' && oldStatus !== 'completed') {
-                            showNotification("Turno completado", "Tu turno #" + userTurn.number + " ha sido completado. Puedes tomar otro turno si lo deseas.");
+                            const message = "Tu turno #" + userTurn.number + " ha sido completado. Puedes tomar otro turno si lo deseas.";
+                            
+                            // Mostrar notificación en la aplicación
+                            showNotification("Turno completado", message);
+                            
+                            // Mostrar notificación del sistema
+                            showSystemNotification("Turno completado", message);
                             
                             // Habilitar la selección de nuevos números
                             loadAvailableTurns();
@@ -663,7 +772,7 @@
                 });
         }
         
-        // Mostrar notificación
+        // Mostrar notificación en la aplicación
         function showNotification(title, message) {
             notificationTitle.textContent = title;
             notificationMessage.textContent = message;
@@ -689,15 +798,15 @@
         }
         
         // Mostrar alertas
-        function showAlert(message, type) {
+        function showAlert(message, type, duration = 5000) {
             alertBox.textContent = message;
             alertBox.className = `alert alert-${type}`;
             alertBox.style.display = 'block';
             
-            // Ocultar automáticamente después de 5 segundos
+            // Ocultar automáticamente después del tiempo especificado
             setTimeout(() => {
                 alertBox.style.display = 'none';
-            }, 5000);
+            }, duration);
         }
         
         // Iniciar la aplicación cuando el DOM esté listo
