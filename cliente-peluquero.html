@@ -177,6 +177,12 @@
             border-left: 4px solid #e74c3c;
         }
         
+        .alert-info {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: #2980b9;
+            border-left: 4px solid #2980b9;
+        }
+        
         .turn-details {
             margin-top: 20px;
             padding-top: 15px;
@@ -326,12 +332,13 @@
                 const today = new Date();
                 const todayString = today.toISOString().split('T')[0];
                 
-                const turnsRef = db.collection('turns').where('date', '==', todayString);
-                const snapshot = await turnsRef.get();
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef.where('date', '==', todayString).get();
                 
                 const takenNumbers = [];
                 snapshot.forEach(doc => {
-                    takenNumbers.push(doc.data().number);
+                    const turnData = doc.data();
+                    takenNumbers.push(turnData.number);
                 });
                 
                 // Generar la cuadrícula de números (1-30)
