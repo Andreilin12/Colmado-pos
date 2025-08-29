@@ -158,6 +158,11 @@
             color: #27ae60;
         }
         
+        .status-completed {
+            background-color: rgba(149, 165, 166, 0.2);
+            color: #7f8c8d;
+        }
+        
         .alert {
             padding: 15px;
             border-radius: 8px;
@@ -204,6 +209,50 @@
             font-weight: 500;
         }
         
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: white;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-icon {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+        }
+        
+        .notification-content {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
         @media (max-width: 600px) {
             .number-grid {
                 grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
@@ -213,6 +262,12 @@
                 width: 50px;
                 height: 50px;
                 font-size: 1rem;
+            }
+            
+            .notification {
+                left: 20px;
+                right: 20px;
+                max-width: none;
             }
         }
     </style>
@@ -266,6 +321,20 @@
         </div>
     </div>
 
+    <!-- Notificación -->
+    <div class="notification" id="notification">
+        <div class="notification-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title" id="notificationTitle">Notificación</div>
+            <div id="notificationMessage">Mensaje de notificación</div>
+        </div>
+        <button class="notification-close" id="closeNotification">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
@@ -293,6 +362,7 @@
         let selectedNumber = null;
         let userTurn = null;
         let turnsListener = null;
+        let notificationTimeout = null;
         
         // Referencias a elementos del DOM
         const userInfoElement = document.getElementById('userInfo');
@@ -305,6 +375,10 @@
         const turnDate = document.getElementById('turnDate');
         const turnTime = document.getElementById('turnTime');
         const turnStatus = document.getElementById('turnStatus');
+        const notification = document.getElementById('notification');
+        const notificationTitle = document.getElementById('notificationTitle');
+        const notificationMessage = document.getElementById('notificationMessage');
+        const closeNotification = document.getElementById('closeNotification');
         
         // Inicializar la aplicación
         function initApp() {
@@ -323,6 +397,14 @@
             
             // Configurar evento para el botón de confirmar turno
             confirmTurnBtn.addEventListener('click', confirmTurn);
+            
+            // Configurar evento para cerrar notificación
+            closeNotification.addEventListener('click', hideNotification);
+            
+            // Solicitar permiso para notificaciones
+            if ('Notification' in window) {
+                Notification.requestPermission();
+            }
         }
         
         // Cargar números disponibles
@@ -388,16 +470,34 @@
                 showAlert("Procesando tu turno...", "info");
                 confirmTurnBtn.disabled = true;
                 
-                // Verificar que el número sigue disponible
+                // Verificar que el usuario no tenga ya un turno
                 const today = new Date();
                 const todayString = today.toISOString().split('T')[0];
                 
-                const existingTurn = await db.collection('turns')
+                const userTurnsQuery = await db.collection('turns')
                     .where('date', '==', todayString)
-                    .where('number', '==', selectedNumber)
+                    .where('clientId', '==', currentUser.uid)
                     .get();
                 
-                if (!existingTurn.empty) {
+                if (!userTurnsQuery.empty) {
+                    showAlert("Ya tienes un turno activo. Solo puedes tener un turno a la vez.", "error");
+                    confirmTurnBtn.disabled = false;
+                    return;
+                }
+                
+                // Verificar que el número sigue disponible
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef.where('date', '==', todayString).get();
+                
+                let numberTaken = false;
+                snapshot.forEach(doc => {
+                    const turnData = doc.data();
+                    if (turnData.number === selectedNumber) {
+                        numberTaken = true;
+                    }
+                });
+                
+                if (numberTaken) {
                     showAlert("Este número ya ha sido tomado. Por favor, selecciona otro.", "error");
                     loadAvailableTurns();
                     return;
@@ -432,19 +532,32 @@
                 const today = new Date();
                 const todayString = today.toISOString().split('T')[0];
                 
-                const userTurnQuery = await db.collection('turns')
-                    .where('date', '==', todayString)
-                    .where('clientId', '==', currentUser.uid)
-                    .get();
+                // Obtener todos los turnos del día y filtrar localmente
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef.where('date', '==', todayString).get();
                 
-                if (!userTurnQuery.empty) {
-                    userTurn = {
-                        id: userTurnQuery.docs[0].id,
-                        ...userTurnQuery.docs[0].data()
-                    };
-                    
+                let userTurnExists = false;
+                snapshot.forEach(doc => {
+                    const turnData = doc.data();
+                    if (turnData.clientId === currentUser.uid) {
+                        userTurnExists = true;
+                        userTurn = {
+                            id: doc.id,
+                            ...turnData
+                        };
+                    }
+                });
+                
+                if (userTurnExists) {
                     displayUserTurn();
                     listenForTurnUpdates();
+                    
+                    // Si el usuario ya tiene un turno, deshabilitar la selección de nuevos números
+                    document.querySelectorAll('.number-btn').forEach(btn => {
+                        if (!btn.disabled) {
+                            btn.disabled = true;
+                        }
+                    });
                 } else {
                     currentTurnCard.style.display = 'none';
                 }
@@ -494,7 +607,7 @@
                     break;
                 case 'completed':
                     statusText = 'Atendido';
-                    statusClass = 'status-ready';
+                    statusClass = 'status-completed';
                     break;
                 default:
                     statusText = 'Desconocido';
@@ -512,25 +625,67 @@
             turnsListener = db.collection('turns').doc(userTurn.id)
                 .onSnapshot((doc) => {
                     if (doc.exists) {
+                        const oldStatus = userTurn.status;
                         userTurn = { id: doc.id, ...doc.data() };
                         displayUserTurn();
                         
                         // Mostrar notificación si el estado cambia a "in-progress"
-                        if (userTurn.status === 'in-progress') {
-                            showAlert("¡Es tu turno! Por favor, acércate al mostrador.", "success");
+                        if (userTurn.status === 'in-progress' && oldStatus !== 'in-progress') {
+                            showNotification("¡Es tu turno!", "Por favor, acércate al mostrador. Turno #" + userTurn.number);
                             
-                            // Opcional: reproducir sonido de notificación
+                            // También mostrar notificación del sistema si está permitido
+                            if ('Notification' in window && Notification.permission === 'granted') {
+                                new Notification("¡Es tu turno!", {
+                                    body: "Por favor, acércate al mostrador. Turno #" + userTurn.number,
+                                    icon: "https://example.com/icon.png" // Reemplaza con tu icono
+                                });
+                            }
+                            
+                            // Reproducir sonido de notificación
                             try {
-                                const audio = new Audio('notification.mp3');
+                                const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3');
                                 audio.play();
                             } catch (e) {
                                 console.log("No se pudo reproducir el sonido de notificación");
                             }
                         }
+                        
+                        // Si el turno fue completado, permitir tomar otro turno
+                        if (userTurn.status === 'completed' && oldStatus !== 'completed') {
+                            showNotification("Turno completado", "Tu turno #" + userTurn.number + " ha sido completado. Puedes tomar otro turno si lo deseas.");
+                            
+                            // Habilitar la selección de nuevos números
+                            loadAvailableTurns();
+                        }
                     }
                 }, (error) => {
                     console.error("Error escuchando cambios:", error);
                 });
+        }
+        
+        // Mostrar notificación
+        function showNotification(title, message) {
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            notification.classList.add('show');
+            
+            // Ocultar automáticamente después de 10 segundos
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+            }
+            
+            notificationTimeout = setTimeout(() => {
+                hideNotification();
+            }, 10000);
+        }
+        
+        // Ocultar notificación
+        function hideNotification() {
+            notification.classList.remove('show');
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
+            }
         }
         
         // Mostrar alertas
