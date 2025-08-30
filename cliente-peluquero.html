@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Turnos - Cliente</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#15a086">
+    <style>
+        :root {
+            --primary-color: #15a086;
+            --primary-dark: #12806b;
+            --secondary-color: #2ecc71;
+            --secondary-dark: #25a25a;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --text-color: #333;
+            --border-radius: 12px;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background-color: #f5f7f9;
+            color: var(--text-color);
+            line-height: 1.6;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 20px 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(30deg);
+        }
+        
+        .user-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .card:active {
+            transform: translateY(2px);
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            font-size: 1.2em;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: var(--transition);
+            width: 100%;
+            font-size: 1rem;
+            box-shadow: 0 4px 8px rgba(21, 160, 134, 0.3);
+        }
+        
+        .btn:hover, .btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(21, 160, 134, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+            box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+        }
+        
+        .btn-secondary:hover, .btn-secondary:active {
+            box-shadow: 0 6px 12px rgba(46, 204, 113, 0.4);
+        }
+        
+        .current-turn {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(21, 160, 134, 0.1), rgba(18, 128, 107, 0.1));
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .current-turn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .turn-number {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            margin: 10px 0;
+        }
+        
+        .turn-status {
+            font-size: 1.1rem;
+            margin-top: 10px;
+            padding: 8px 16px;
+            border-radius: 50px;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .status-waiting {
+            background-color: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+        
+        .status-ready {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+        }
+        
+        .status-completed {
+            background-color: rgba(149, 165, 166, 0.2);
+            color: #7f8c8d;
+        }
+        
+        .alert {
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .alert-success {
+            background-color: rgba(46, 204, 113, 0.15);
+            color: #27ae60;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .alert-error {
+            background-color: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .alert-info {
+            background-color: rgba(52, 152, 219, 0.15);
+            color: #2980b9;
+            border-left: 4px solid #2980b9;
+        }
+        
+        .turn-details {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-value {
+            font-weight: 600;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background-color: white;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .notification-icon {
+            font-size: 1.8rem;
+            color: var(--secondary-color);
+        }
+        
+        .notification-content {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--dark-color);
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+        
+        .notification-close:active {
+            background-color: #f0f0f0;
+        }
+        
+        .auto-assign-section {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.05), rgba(37, 162, 90, 0.05));
+            border-radius: var(--border-radius);
+        }
+        
+        .next-available-info {
+            margin-top: 15px;
+            padding: 16px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .turn-info-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(21, 160, 134, 0.2); }
+            70% { box-shadow: 0 0 0 10px rgba(21, 160, 134, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(21, 160, 134, 0); }
+        }
+        
+        .waiting-turns-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border-radius: var(--border-radius);
+            border: 1px solid #eee;
+            padding: 10px;
+        }
+        
+        .waiting-turn-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: var(--transition);
+        }
+        
+        .waiting-turn-item:last-child {
+            border-bottom: none;
+        }
+        
+        .waiting-turn-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .user-turn {
+            background-color: rgba(21, 160, 134, 0.1);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .refresh-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .refresh-btn:active {
+            transform: rotate(180deg);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        /* Estilos para móviles */
+        @media (max-width: 600px) {
+            .container {
+                padding: 12px;
+            }
+            
+            header {
+                padding: 16px 12px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .turn-number {
+                font-size: 2.8rem;
+            }
+            
+            .btn {
+                padding: 14px 16px;
+                font-size: 0.95rem;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .notification {
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                padding: 12px;
+            }
+        }
+        
+        /* Modo oscuro */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --light-color: #2c3e50;
+                --text-color: #ecf0f1;
+            }
+            
+            body {
+                background-color: #1a2530;
+                color: var(--text-color);
+            }
+            
+            .card {
+                background-color: #2c3e50;
+            }
+            
+            .detail-label {
+                color: #bdc3c7;
+            }
+            
+            .waiting-turns-container {
+                border-color: #34495e;
+            }
+            
+            .waiting-turn-item {
+                border-color: #34495e;
+            }
+            
+            .waiting-turn-item:hover {
+                background-color: #34495e;
+            }
+            
+            .empty-state {
+                color: #bdc3c7;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Peluquería Estilo Perfecto</h1>
+            <div class="user-info" id="userInfo">
+                <i class="fas fa-user-circle"></i> Cargando información...
+            </div>
+            <button class="refresh-btn" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </header>
+        
+        <div class="alert" id="alertBox"></div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="turnTab">Mi Turno</div>
+            <div class="tab" data-tab="queueTab">Cola de Espera</div>
+            <div class="tab" data-tab="infoTab">Información</div>
+        </div>
+        
+        <div class="tab-content active" id="turnTab">
+            <div class="turn-info-card" id="nextTurnInfo">
+                <h3><i class="fas fa-info-circle"></i> Próximo turno disponible: <span id="nextAvailableNumber">--</span></h3>
+                <p>El sistema automáticamente te asignará el siguiente turno disponible en orden numérico.</p>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-ticket-alt"></i> Sistema de Turnos Automático</h2>
+                <p>Haz clic en el botón para obtener tu turno automáticamente</p>
+                
+                <div class="auto-assign-section">
+                    <button class="btn btn-secondary" id="autoAssignBtn">
+                        <i class="fas fa-magic"></i> Obtener Turno Automático
+                    </button>
+                    <div class="loader" id="assignLoader"></div>
+                    
+                    <div class="next-available-info" id="nextAvailableInfo">
+                        <i class="fas fa-search"></i> Buscando próximo turno disponible...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" id="currentTurnCard" style="display: none;">
+                <h2 class="card-title"><i class="fas fa-clock"></i> Tu Turno Actual</h2>
+                
+                <div class="current-turn">
+                    <div class="turn-number" id="currentTurnNumber">--</div>
+                    <div class="turn-status" id="currentTurnStatus">Esperando confirmación</div>
+                </div>
+                
+                <div class="turn-details">
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="far fa-calendar"></i> Fecha:</span>
+                        <span class="detail-value" id="turnDate">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="far fa-clock"></i> Hora:</span>
+                        <span class="detail-value" id="turnTime">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-hourglass-half"></i> Estado:</span>
+                        <span class="detail-value" id="turnStatus">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-list-ol"></i> Posición en cola:</span>
+                        <span class="detail-value" id="queuePosition">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-stopwatch"></i> Tiempo estimado:</span>
+                        <span class="detail-value" id="waitTime">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="queueTab">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-users"></i> Turnos en Espera</h2>
+                <div id="waitingTurnsContainer" class="waiting-turns-container">
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>Cargando información de turnos en espera...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="infoTab">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-info-circle"></i> Información del Sistema</h2>
+                <div class="turn-details">
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-ticket-alt"></i> Turnos hoy:</span>
+                        <span class="detail-value" id="turnsToday">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-user-clock"></i> Espera promedio:</span>
+                        <span class="detail-value" id="avgWaitTime">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-check-circle"></i> Turnos completados:</span>
+                        <span class="detail-value" id="completedTurns">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-question-circle"></i> ¿Cómo funciona?</h2>
+                <div class="turn-details">
+                    <p>1. El sistema asigna automáticamente el siguiente turno disponible.</p>
+                    <p>2. Puedes ver tu posición actual en la cola de espera.</p>
+                    <p>3. Recibirás una notificación cuando sea tu turno.</p>
+                    <p>4. Los turnos van del 1 al 1000 en orden numérico.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificación -->
+    <div class="notification" id="notification">
+        <div class="notification-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title" id="notificationTitle">Notificación</div>
+            <div id="notificationMessage">Mensaje de notificación</div>
+        </div>
+        <button class="notification-close" id="closeNotification">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLi-egzQlgbKW8XV_qIhU6313Gd8gocCg",
+            authDomain: "inventario-35d6b.firebaseapp.com",
+            databaseURL: "https://inventario-35d6b-default-rtdb.firebaseio.com",
+            projectId: "inventario-35d6b",
+            storageBucket: "inventario-35d6b.appspot.com",
+            messagingSenderId: "266100399659",
+            appId: "1:266100399659:web:92358d28cbd803c8a7d46e"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        
+        // Variables globales
+        let currentUser = null;
+        let userTurn = null;
+        let turnsListener = null;
+        let notificationTimeout = null;
+        let nextAvailableTurn = 1;
+        let waitingTurns = [];
+        let allTurnsToday = [];
+        
+        // Referencias a elementos del DOM
+        const userInfoElement = document.getElementById('userInfo');
+        const alertBox = document.getElementById('alertBox');
+        const currentTurnCard = document.getElementById('currentTurnCard');
+        const currentTurnNumber = document.getElementById('currentTurnNumber');
+        const currentTurnStatus = document.getElementById('currentTurnStatus');
+        const turnDate = document.getElementById('turnDate');
+        const turnTime = document.getElementById('turnTime');
+        const turnStatus = document.getElementById('turnStatus');
+        const queuePosition = document.getElementById('queuePosition');
+        const waitTime = document.getElementById('waitTime');
+        const notification = document.getElementById('notification');
+        const notificationTitle = document.getElementById('notificationTitle');
+        const notificationMessage = document.getElementById('notificationMessage');
+        const closeNotification = document.getElementById('closeNotification');
+        const autoAssignBtn = document.getElementById('autoAssignBtn');
+        const assignLoader = document.getElementById('assignLoader');
+        const nextAvailableInfo = document.getElementById('nextAvailableInfo');
+        const nextAvailableNumber = document.getElementById('nextAvailableNumber');
+        const waitingTurnsContainer = document.getElementById('waitingTurnsContainer');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const turnsTodayElement = document.getElementById('turnsToday');
+        const avgWaitTimeElement = document.getElementById('avgWaitTime');
+        const completedTurnsElement = document.getElementById('completedTurns');
+        
+        // Inicializar la aplicación
+        function initApp() {
+            // Verificar estado de autenticación
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user;
+                    userInfoElement.innerHTML = `<i class="fas fa-user-circle"></i> ${user.displayName || user.email}`;
+                    findNextAvailableTurn();
+                    checkUserExistingTurn();
+                    listenForTurnsUpdates();
+                    loadSystemStats();
+                } else {
+                    // Redirigir a login si no está autenticado
+                    window.location.href = "login.html";
+                }
+            });
+            
+            // Configurar evento para el botón de asignación automática
+            autoAssignBtn.addEventListener('click', assignNextAvailableTurn);
+            
+            // Configurar evento para cerrar notificación
+            closeNotification.addEventListener('click', hideNotification);
+            
+            // Configurar evento para el botón de actualizar
+            refreshBtn.addEventListener('click', refreshData);
+            
+            // Configurar pestañas
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // Desactivar todas las pestañas
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    // Activar la pestaña seleccionada
+                    tab.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Solicitar permiso para notificaciones
+            if ('Notification' in window && Notification.permission === 'default') {
+                setTimeout(() => {
+                    showAlert("Habilita las notificaciones para recibir alertas cuando sea tu turno", "info", 8000);
+                }, 3000);
+            }
+            
+            // Configurar Service Worker para PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(() => console.log('Service Worker registrado'))
+                    .catch(err => console.log('Error registrando SW:', err));
+            }
+        }
+        
+        // Actualizar todos los datos
+        function refreshData() {
+            refreshBtn.style.animation = 'spin 1s ease';
+            setTimeout(() => {
+                refreshBtn.style.animation = '';
+                findNextAvailableTurn();
+                checkUserExistingTurn();
+                loadSystemStats();
+                showAlert("Datos actualizados", "success", 3000);
+            }, 1000);
+        }
+        
+        // Encontrar el próximo turno disponible - CORREGIDO
+        async function findNextAvailableTurn() {
+            try {
+                nextAvailableInfo.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando próximo turno disponible...';
+                
+                // Obtener todos los turnos del día actual
+                const today = new Date();
+                const todayString = today.toISOString().split('T')[0];
+                
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef
+                    .where('date', '==', todayString)
+                    .get();
+                
+                const takenNumbers = [];
+                snapshot.forEach(doc => {
+                    const turnData = doc.data();
+                    takenNumbers.push(parseInt(turnData.number));
+                });
+                
+                // Ordenar números tomados
+                takenNumbers.sort((a, b) => a - b);
+                
+                // Encontrar el primer número disponible (1-1000)
+                let nextAvailable = 1;
+                for (let i = 1; i <= 1000; i++) {
+                    if (!takenNumbers.includes(i)) {
+                        nextAvailable = i;
+                        break;
+                    }
+                }
+                
+                nextAvailableTurn = nextAvailable;
+                nextAvailableNumber.textContent = nextAvailableTurn;
+                nextAvailableInfo.innerHTML = `<i class="fas fa-info-circle"></i> Próximo turno disponible: <strong>#${nextAvailableTurn}</strong>`;
+                
+            } catch (error) {
+                console.error("Error al buscar turnos disponibles:", error);
+                nextAvailableInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error al buscar turnos disponibles`;
+                showAlert("Error al buscar turnos disponibles. Verifica tu conexión.", "error");
+            }
+        }
+        
+        // Asignar automáticamente el próximo turno disponible
+        async function assignNextAvailableTurn() {
+            if (!nextAvailableTurn) {
+                showAlert("No se ha encontrado un turno disponible", "error");
+                return;
+            }
+            
+            try {
+                autoAssignBtn.disabled = true;
+                assignLoader.style.display = 'block';
+                
+                // Verificar que el usuario no tenga ya un turno
+                const today = new Date();
+                const todayString = today.toISOString().split('T')[0];
+                
+                const userTurnsQuery = await db.collection('turns')
+                    .where('date', '==', todayString)
+                    .where('clientId', '==', currentUser.uid)
+                    .get();
+                
+                if (!userTurnsQuery.empty) {
+                    showAlert("Ya tienes un turno activo. Solo puedes tener un turno a la vez.", "error");
+                    autoAssignBtn.disabled = false;
+                    assignLoader.style.display = 'none';
+                    return;
+                }
+                
+                // Verificar que el número sigue disponible
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef
+                    .where('date', '==', todayString)
+                    .where('number', '==', nextAvailableTurn)
+                    .get();
+                
+                if (!snapshot.empty) {
+                    showAlert("Este número ya ha sido tomado. Buscando nuevo turno disponible...", "info");
+                    await findNextAvailableTurn();
+                    autoAssignBtn.disabled = false;
+                    assignLoader.style.display = 'none';
+                    return;
+                }
+                
+                // Crear el turno
+                const now = new Date();
+                const turnData = {
+                    number: nextAvailableTurn,
+                    date: todayString,
+                    time: now.toTimeString().split(' ')[0],
+                    clientId: currentUser.uid,
+                    clientName: currentUser.displayName || currentUser.email,
+                    status: 'waiting',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    timestamp: now.getTime(),
+                    estimatedWaitTime: calculateWaitTime(nextAvailableTurn)
+                };
+                
+                await db.collection('turns').add(turnData);
+                
+                showAlert(`Turno #${nextAvailableTurn} asignado correctamente.`, "success");
+                checkUserExistingTurn();
+                
+            } catch (error) {
+                console.error("Error al asignar turno:", error);
+                showAlert("Error al asignar el turno", "error");
+            } finally {
+                autoAssignBtn.disabled = false;
+                assignLoader.style.display = 'none';
+            }
+        }
+        
+        // Calcular tiempo de espera estimado
+        function calculateWaitTime(turnNumber) {
+            // Suponiendo que cada turno toma aproximadamente 15 minutos
+            const turnsBefore = turnNumber - 1;
+            const minutes = turnsBefore * 15;
+            
+            if (minutes < 60) {
+                return `Aprox. ${minutes} minutos`;
+            } else {
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                return `Aprox. ${hours}h ${remainingMinutes}min`;
+            }
+        }
+        
+        // Verificar si el usuario ya tiene un turno
+        async function checkUserExistingTurn() {
+            try {
+                const today = new Date();
+                const todayString = today.toISOString().split('T')[0];
+                
+                // Obtener todos los turnos del día y filtrar localmente
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef
+                    .where('date', '==', todayString)
+                    .get();
+                
+                let userTurnExists = false;
+                allTurnsToday = [];
+                
+                snapshot.forEach(doc => {
+                    const turnData = doc.data();
+                    allTurnsToday.push({
+                        id: doc.id,
+                        ...turnData
+                    });
+                    
+                    if (turnData.clientId === currentUser.uid) {
+                        userTurnExists = true;
+                        userTurn = {
+                            id: doc.id,
+                            ...turnData
+                        };
+                    }
+                });
+                
+                // Ordenar por número
+                allTurnsToday.sort((a, b) => a.number - b.number);
+                
+                // Actualizar lista de turnos en espera
+                updateWaitingTurnsList(allTurnsToday);
+                
+                if (userTurnExists) {
+                    displayUserTurn();
+                    
+                    // Si el usuario ya tiene un turno, deshabilitar la asignación de nuevos
+                    autoAssignBtn.disabled = true;
+                    autoAssignBtn.innerHTML = '<i class="fas fa-check-circle"></i> Ya tienes un turno asignado';
+                } else {
+                    currentTurnCard.style.display = 'none';
+                    autoAssignBtn.disabled = false;
+                    autoAssignBtn.innerHTML = '<i class="fas fa-magic"></i> Obtener Turno Automático';
+                }
+            } catch (error) {
+                console.error("Error al verificar turno existente:", error);
+            }
+        }
+        
+        // Mostrar el turno del usuario
+        function displayUserTurn() {
+            if (!userTurn) return;
+            
+            currentTurnCard.style.display = 'block';
+            currentTurnNumber.textContent = userTurn.number;
+            
+            // Formatear fecha
+            const dateObj = new Date(userTurn.date);
+            const formattedDate = dateObj.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            turnDate.textContent = formattedDate;
+            turnTime.textContent = userTurn.time;
+            
+            // Calcular posición en cola
+            const waitingTurns = allTurnsToday.filter(t => t.status === 'waiting');
+            const position = waitingTurns.findIndex(turn => turn.id === userTurn.id) + 1;
+            queuePosition.textContent = position > 0 ? `${position} de ${waitingTurns.length}` : '--';
+            
+            // Calcular tiempo de espera estimado
+            waitTime.textContent = userTurn.estimatedWaitTime || calculateWaitTime(userTurn.number);
+            
+            // Actualizar estado
+            updateTurnStatus();
+        }
+        
+        // Actualizar visualización del estado del turno
+        function updateTurnStatus() {
+            if (!userTurn) return;
+            
+            let statusText = '';
+            let statusClass = '';
+            
+            switch (userTurn.status) {
+                case 'waiting':
+                    statusText = 'En espera';
+                    statusClass = 'status-waiting';
+                    break;
+                case 'in-progress':
+                    statusText = 'Siendo atendido';
+                    statusClass = 'status-ready';
+                    break;
+                case 'completed':
+                    statusText = 'Atendido';
+                    statusClass = 'status-completed';
+                    break;
+                default:
+                    statusText = 'Desconocido';
+            }
+            
+            currentTurnStatus.textContent = statusText;
+            currentTurnStatus.className = `turn-status ${statusClass}`;
+            turnStatus.textContent = statusText;
+        }
+        
+        // Escuchar cambios en los turnos
+        function listenForTurnsUpdates() {
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            
+            turnsListener = db.collection('turns')
+                .where('date', '==', todayString)
+                .onSnapshot((snapshot) => {
+                    allTurnsToday = [];
+                    snapshot.forEach(doc => {
+                        allTurnsToday.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    // Ordenar por número
+                    allTurnsToday.sort((a, b) => a.number - b.number);
+                    
+                    // Actualizar lista de espera
+                    updateWaitingTurnsList(allTurnsToday);
+                    
+                    // Recalcular próximo turno disponible
+                    findNextAvailableTurn();
+                    
+                    // Si el usuario tiene un turno, actualizar la información
+                    if (currentUser) {
+                        const userTurnData = allTurnsToday.find(turn => turn.clientId === currentUser.uid);
+                        if (userTurnData) {
+                            userTurn = userTurnData;
+                            displayUserTurn();
+                            
+                            // Mostrar notificación si el estado cambió
+                            if (userTurn.status === 'in-progress') {
+                                const message = "Por favor, acércate al mostrador. Turno #" + userTurn.number;
+                                showNotification("¡Es tu turno!", message);
+                                showSystemNotification("¡Es tu turno!", message);
+                            }
+                        } else {
+                            userTurn = null;
+                            currentTurnCard.style.display = 'none';
+                            autoAssignBtn.disabled = false;
+                            autoAssignBtn.innerHTML = '<i class="fas fa-magic"></i> Obtener Turno Automático';
+                        }
+                    }
+                }, (error) => {
+                    console.error("Error escuchando cambios en turnos:", error);
+                });
+        }
+        
+        // Actualizar lista de turnos en espera
+        function updateWaitingTurnsList(turns) {
+            // Filtrar solo los turnos en espera
+            waitingTurns = turns.filter(turn => turn.status === 'waiting');
+            
+            if (waitingTurns.length === 0) {
+                waitingTurnsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No hay turnos en espera en este momento.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <p style="margin-bottom: 12px; font-weight: 600;">Total de turnos en espera: <strong>${waitingTurns.length}</strong></p>
+            `;
+            
+            waitingTurns.forEach((turn, index) => {
+                const isUserTurn = currentUser && turn.clientId === currentUser.uid;
+                const rowClass = isUserTurn ? 'waiting-turn-item user-turn' : 'waiting-turn-item';
+                
+                html += `
+                    <div class="${rowClass}">
+                        <div><strong>#${turn.number}</strong> ${isUserTurn ? ' (TÚ)' : ''}</div>
+                        <div>${turn.time}</div>
+                    </div>
+                `;
+            });
+            
+            waitingTurnsContainer.innerHTML = html;
+        }
+        
+        // Cargar estadísticas del sistema
+        async function loadSystemStats() {
+            try {
+                const today = new Date();
+                const todayString = today.toISOString().split('T')[0];
+                
+                const turnsRef = db.collection('turns');
+                const snapshot = await turnsRef
+                    .where('date', '==', todayString)
+                    .get();
+                
+                const allTurns = [];
+                snapshot.forEach(doc => {
+                    allTurns.push(doc.data());
+                });
+                
+                // Calcular estadísticas
+                const totalTurns = allTurns.length;
+                const completedTurns = allTurns.filter(t => t.status === 'completed').length;
+                
+                // Calcular tiempo de espera promedio (suponiendo 15 min por turno)
+                const avgWaitMin = totalTurns > 0 ? Math.round((totalTurns * 15) / 60) : 0;
+                const avgWaitTime = avgWaitMin > 0 ? `Aprox. ${avgWaitMin} min` : 'Sin datos';
+                
+                // Actualizar UI
+                turnsTodayElement.textContent = totalTurns;
+                completedTurnsElement.textContent = completedTurns;
+                avgWaitTimeElement.textContent = avgWaitTime;
+                
+            } catch (error) {
+                console.error("Error al cargar estadísticas:", error);
+            }
+        }
+        
+        // Mostrar notificación del sistema
+        function showSystemNotification(title, message) {
+            if (!('Notification' in window)) {
+                console.log('Este navegador no soporta notificaciones del sistema');
+                return;
+            }
+            
+            if (Notification.permission === 'granted') {
+                const iconUrl = 'https://cdn-icons-png.flaticon.com/512/3468/3468373.png';
+                
+                const notification = new Notification(title, {
+                    body: message,
+                    icon: iconUrl,
+                    requireInteraction: true
+                });
+                
+                // Cerrar la notificación después de 10 segundos
+                setTimeout(() => {
+                    notification.close();
+                }, 10000);
+                
+                // Acción al hacer clic en la notificación
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+            }
+        }
+        
+        // Mostrar notificación en la aplicación
+        function showNotification(title, message) {
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            notification.classList.add('show');
+            
+            // Ocultar automáticamente después de 10 segundos
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+            }
+            
+            notificationTimeout = setTimeout(() => {
+                hideNotification();
+            }, 10000);
+        }
+        
+        // Ocultar notificación
+        function hideNotification() {
+            notification.classList.remove('show');
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
+            }
+        }
+        
+        // Mostrar alertas
+        function showAlert(message, type, duration = 5000) {
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            
+            // Ocultar automáticamente después del tiempo especificado
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, duration);
+        }
+        
+        // Iniciar la aplicación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
